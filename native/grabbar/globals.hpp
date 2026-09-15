@@ -1,6 +1,6 @@
 #pragma once
 
-// Grabbar native backend — G0 feasibility prototype.
+// Grabbar native backend.
 //
 // Derived from Hyprbars (hyprland-plugins @ 7644cecdb947060682891a0db2a0cdc5c0b9e704,
 // BSD-3-Clause, Copyright (c) 2023 Hypr Development). See docs/UPSTREAM.md and

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# G0 feasibility scenarios against an isolated nested Hyprland session.
+# Core native scenarios (the G0 gate) against an isolated nested Hyprland session.
 #
 # Preconditions (see docs/QUALIFICATION.md "Nested test rig"):
 #   - a nested Hyprland instance is running; its instance signature is $SIG

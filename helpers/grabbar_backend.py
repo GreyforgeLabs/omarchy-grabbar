@@ -2,7 +2,7 @@
 """Client for the Grabbar native backend socket (protocol 1).
 
 Used by the CLI, the integration tests, and as a stand-in shell service during
-the G0 feasibility work. Standard library only; short-lived.
+the nested-compositor test rig. Standard library only; short-lived.
 
 Wire format: one message per line, fields separated by tabs, the first field is
 the message type, the rest are key=value with control characters, '%', tab and
