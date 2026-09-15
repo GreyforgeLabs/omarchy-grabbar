@@ -1011,10 +1011,10 @@ DEBUG ]: Creating the XWaylandManager!
 DEBUG ]: Creating the Debug Overlay!
 DEBUG ]: Creating the NotificationOverlay!
 DEBUG ]: Creating the PluginSystem!
-DEBUG ]: Loading plugin /home/gfarch/Projects/omarchy-grabbar/native/grabbar/grabbar.so which is now present in config
+DEBUG ]: Loading plugin ~/Projects/omarchy-grabbar/native/grabbar/grabbar.so which is now present in config
 DEBUG ]: [grabbar] backend epoch 1789452987 listening on /run/user/1000/grabbar/efb50993780079460b0cbed1363e2166a2de1d9f_1789452987_1382453942/backend.sock
-DEBUG ]:  [PluginSystem] Plugin grabbar loaded. Handle: 55de3ab59230, path: "/home/gfarch/Projects/omarchy-grabbar/native/grabbar/grabbar.so", author: "Greyforge Labs", description: "Familiar window controls for Omarchy (G0 prototype).", version: "0.0.1-g0"
-DEBUG ]: CPluginSystem::updateConfigPlugins: loaded /home/gfarch/Projects/omarchy-grabbar/native/grabbar/grabbar.so
+DEBUG ]:  [PluginSystem] Plugin grabbar loaded. Handle: 55de3ab59230, path: "~/Projects/omarchy-grabbar/native/grabbar/grabbar.so", author: "Greyforge Labs", description: "Familiar window controls for Omarchy (G0 prototype).", version: "0.0.1-g0"
+DEBUG ]: CPluginSystem::updateConfigPlugins: loaded ~/Projects/omarchy-grabbar/native/grabbar/grabbar.so
 DEBUG ]: [CXDGOutputProtocol] updating all xdg_output heads
 DEBUG ]: Creating the DecorationPositioner!
 DEBUG ]: Creating the CursorManager!

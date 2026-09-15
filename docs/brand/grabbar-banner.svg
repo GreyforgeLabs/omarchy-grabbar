@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" font-family="Adwaita Sans, Inter, Noto Sans, Liberation Sans, sans-serif">
+  <defs>
+    <radialGradient id="plate" cx="30%" cy="45%" r="80%">
+      <stop offset="0" stop-color="#151b23"/>
+      <stop offset="1" stop-color="#080b0f"/>
+    </radialGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e3e8ed"/>
+      <stop offset="0.45" stop-color="#aab3bc"/>
+      <stop offset="0.55" stop-color="#7f8994"/>
+      <stop offset="1" stop-color="#b9c1c9"/>
+    </linearGradient>
+    <linearGradient id="steelEdge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f2f5f8"/>
+      <stop offset="0.5" stop-color="#8b959f"/>
+      <stop offset="1" stop-color="#3b434c"/>
+    </linearGradient>
+    <linearGradient id="steelFace" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6f7983"/>
+      <stop offset="0.5" stop-color="#4a525b"/>
+      <stop offset="1" stop-color="#2b3138"/>
+    </linearGradient>
+    <linearGradient id="inset" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1116"/>
+      <stop offset="1" stop-color="#161c24"/>
+    </linearGradient>
+    <linearGradient id="strip" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a434d"/>
+      <stop offset="1" stop-color="#2a323b"/>
+    </linearGradient>
+    <radialGradient id="amber" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#fff1cc"/>
+      <stop offset="0.35" stop-color="#fda52b"/>
+      <stop offset="1" stop-color="#fda52b" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#38c8e8" stroke-opacity="0.045" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <!-- plate -->
+  <rect width="1280" height="640" fill="url(#plate)"/>
+  <rect width="1280" height="640" fill="url(#grid)"/>
+
+  <!-- blueprint construction, mark side -->
+  <g stroke="#38c8e8" fill="none" stroke-width="1">
+    <circle cx="300" cy="320" r="232" stroke-opacity="0.16"/>
+    <circle cx="300" cy="320" r="196" stroke-opacity="0.22" stroke-dasharray="3 9"/>
+    <circle cx="300" cy="320" r="118" stroke-opacity="0.12"/>
+    <path d="M300 60V102 M300 538V580 M40 320H82 M518 320H560" stroke-opacity="0.35"/>
+    <path d="M300 60V580 M40 320H560" stroke-opacity="0.06"/>
+  </g>
+
+  <!-- lattice to the wordmark -->
+  <g stroke="#38c8e8" stroke-width="1" fill="none">
+    <path d="M430 245 L556 232 L 1185 232" stroke-opacity="0.32"/>
+    <path d="M430 395 L556 424 L 1185 424" stroke-opacity="0.32"/>
+    <path d="M556 232 L556 424" stroke-opacity="0.18"/>
+  </g>
+  <g fill="#8fa37a">
+    <circle cx="556" cy="232" r="3.2"/>
+    <circle cx="556" cy="424" r="3.2"/>
+    <circle cx="1185" cy="232" r="3.2"/>
+    <circle cx="1185" cy="424" r="3.2"/>
+  </g>
+
+  <!-- hexagonal steel plate -->
+  <g transform="translate(300 320)">
+    <polygon points="0,-168 145.5,-84 145.5,84 0,168 -145.5,84 -145.5,-84" fill="url(#steelEdge)"/>
+    <polygon points="0,-150 130,-75 130,75 0,150 -130,75 -130,-75" fill="url(#steelFace)"/>
+    <polygon points="0,-128 110.9,-64 110.9,64 0,128 -110.9,64 -110.9,-64" fill="url(#inset)" stroke="#1d232b" stroke-width="2"/>
+    <path d="M0,-150 L-130,-75 L-110.9,-64 L0,-128 Z" fill="#ffffff" fill-opacity="0.10"/>
+    <path d="M130,75 L0,150 L0,128 L110.9,64 Z" fill="#000000" fill-opacity="0.35"/>
+    <path d="M-130,-75 L-110.9,-64 M130,-75 L110.9,-64 M-130,75 L-110.9,64 M130,75 L110.9,64 M0,-150 L0,-128 M0,150 L0,128" stroke="#38c8e8" stroke-width="1.6" stroke-opacity="0.85"/>
+
+    <!-- where the window was: a dashed ghost, left behind by the drag -->
+    <g transform="translate(-24 26)">
+      <rect x="-74" y="-52" width="148" height="104" rx="8" fill="#38c8e8" fill-opacity="0.04" stroke="#38c8e8" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 5"/>
+      <path d="M-74 -28 H74" stroke="#38c8e8" stroke-opacity="0.3" stroke-width="1.5" stroke-dasharray="5 5"/>
+    </g>
+
+    <!-- the window, mid-drag, with its Grabbar strip -->
+    <g transform="translate(14 -14)">
+      <rect x="-74" y="-52" width="148" height="104" rx="8" fill="#1a2028" stroke="url(#steel)" stroke-width="3"/>
+      <path d="M-74 -44 a8 8 0 0 1 8 -8 h132 a8 8 0 0 1 8 8 v16 h-148 z" fill="url(#strip)"/>
+      <path d="M-74 -28 H74" stroke="#aab3bc" stroke-width="2"/>
+      <!-- menu glyph -->
+      <path d="M-62 -42 h10 M-62 -38 h10 M-62 -34 h10" stroke="#c9d1d9" stroke-width="1.8" stroke-linecap="round"/>
+      <!-- minimize / maximize / close -->
+      <path d="M18 -35 h10" stroke="#e6e9ee" stroke-width="2.2" stroke-linecap="round"/>
+      <rect x="36" y="-43" width="10" height="10" fill="none" stroke="#e6e9ee" stroke-width="2"/>
+      <path d="M54 -43 l10 10 M64 -43 l-10 10" stroke="#e6e9ee" stroke-width="2.2" stroke-linecap="round"/>
+      <!-- content lines -->
+      <rect x="-56" y="-12" width="84" height="6" rx="3" fill="#38c8e8" fill-opacity="0.55"/>
+      <rect x="-56" y="4" width="60" height="6" rx="3" fill="#6f7983" fill-opacity="0.6"/>
+      <rect x="-56" y="20" width="74" height="6" rx="3" fill="#6f7983" fill-opacity="0.45"/>
+    </g>
+
+    <!-- the grab: a hand on the strip, with the one warm core at the grab point -->
+    <g transform="translate(-12 -50)">
+      <circle cx="0" cy="0" r="18" fill="url(#amber)" filter="url(#softGlow)"/>
+      <circle cx="0" cy="0" r="6" fill="#fda52b"/>
+      <circle cx="0" cy="0" r="2.4" fill="#fff4d6"/>
+      <!-- grabbing hand (closed, fingers over the strip) -->
+      <g transform="translate(-19 -8) scale(1.7)" fill="#f2f5f8" stroke="#2b3138" stroke-width="1.1" stroke-linejoin="round">
+        <path d="M6 9.5 V6.5 a1.6 1.6 0 0 1 3.2 0 V9 M9.2 8.6 V5.6 a1.6 1.6 0 0 1 3.2 0 V9 M12.4 8.6 V6.4 a1.6 1.6 0 0 1 3.2 0 V10 M15.6 9.6 V8.4 a1.6 1.6 0 0 1 3.2 0 V15 c0 3.6 -2.6 6.4 -6.2 6.4 h-2.2 c-2.4 0 -4.2 -1.2 -5.4 -3.2 l-2.6 -4.2 a1.5 1.5 0 0 1 2.5 -1.7 l1.1 1.5 V9.5 z"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- wordmark -->
+  <text x="556" y="332" font-size="108" font-weight="800" letter-spacing="6" fill="url(#steel)">GRABBAR</text>
+  <text x="560" y="374" font-size="21" font-weight="500" fill="#c9d1d9">Minimize, maximize, close and move windows with the mouse.</text>
+  <text x="560" y="402" font-size="21" font-weight="500" fill="#c9d1d9">A minimized window always has a way back.</text>
+
+  <!-- product line -->
+  <text x="560" y="203" font-size="16" font-weight="600" letter-spacing="5" fill="#38c8e8">FAMILIAR WINDOW CONTROLS FOR OMARCHY</text>
+
+  <!-- maker line -->
+  <g transform="translate(560 478)">
+    <polygon points="0,-9 7.8,-4.5 7.8,4.5 0,9 -7.8,4.5 -7.8,-4.5" fill="none" stroke="#aab3bc" stroke-width="1.4"/>
+    <circle cx="0" cy="0" r="2" fill="#fda52b"/>
+    <text x="20" y="5.5" font-size="15" font-weight="700" letter-spacing="4.5" fill="#aab3bc">GREYFORGE LABS</text>
+  </g>
+  <text x="1185" y="483" font-size="15" letter-spacing="2" fill="#5b646e" text-anchor="end">Hyprland · Quickshell · MIT + BSD-3</text>
+</svg>

@@ -1,0 +1,9 @@
+before compositor pss=99826kB fds=85 | shell pss=194281kB fds=73 | backend tracked=1 owned=0
+cycle 100 compositor pss=99827kB fds=83 | shell pss=190329kB fds=72 | backend tracked=1 owned=0
+cycle 200 compositor pss=99825kB fds=83 | shell pss=190432kB fds=72 | backend tracked=1 owned=0
+cycle 300 compositor pss=99827kB fds=83 | shell pss=190277kB fds=72 | backend tracked=1 owned=0
+cycle 400 compositor pss=99827kB fds=83 | shell pss=190181kB fds=72 | backend tracked=1 owned=0
+cycle 500 compositor pss=99827kB fds=83 | shell pss=190177kB fds=72 | backend tracked=1 owned=0
+after compositor pss=99827kB fds=83 | shell pss=190177kB fds=72 | backend tracked=1 owned=0
+cycles=500 ok=500 p50=164ms p95=170ms max=186ms
+failed cycles: 0; elapsed 83 s

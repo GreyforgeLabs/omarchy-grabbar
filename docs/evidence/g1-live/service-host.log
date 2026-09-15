@@ -1,4 +1,4 @@
-[32m  INFO[0m: Launching config: "/home/gfarch/Projects/omarchy-grabbar/docs/evidence/g1-live/host/shell.qml"
+[32m  INFO[0m: Launching config: "~/Projects/omarchy-grabbar/docs/evidence/g1-live/host/shell.qml"
 [32m  INFO[0m: Shell ID: "83eabdeaeba6b16ad8db9ff2f1f4f33b" Path ID "83eabdeaeba6b16ad8db9ff2f1f4f33b"
 [32m  INFO[0m: Saving logs to "/run/user/1000/quickshell/by-id/zac1877elt/log.qslog"
 [34m DEBUG[97m qml[0m: grabbar-test-host: service started, restoreHost=true

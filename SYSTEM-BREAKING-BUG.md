@@ -1,7 +1,10 @@
-# SYSTEM-BREAKING BUG — GRABBAR native plugin
+# SYSTEM-BREAKING BUG — GRABBAR native plugin (incident record)
 
-Status: ROOT CAUSE FOUND AND FIXED IN SOURCE, 2026-09-15 02:30 EDT; host trial NOT yet
-authorised. Native Grabbar remains disabled on the desktop. See the update at the end.
+Status: **RESOLVED.** Root cause found and fixed in source 2026-09-15 02:30 EDT
+(`docs/AUTOLOAD.md`), regression suite `tests/integration/startup-nested.sh`,
+controlled host trial passed the same day (`grabbar autoload enable` with the
+guarded loader; compositor pid unchanged across config evaluations). This file
+is kept as the incident record; the earlier text below is unedited history.
 Owner: GRABBAR development and the operator.
 Review: before any further native plugin testing or installation.
 

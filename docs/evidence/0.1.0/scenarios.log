@@ -1,0 +1,30 @@
+
+== F02: press Minimize on A, focus moves to B before release, release on A -> only A minimizes
+  PASS F02 only A minimized
+
+== F05: external maximize toggle is reflected by the backend
+  PASS F05 backend reports maximized after an external maximize
+  PASS F05 the strip's button then restores size (no stale checkpoint)
+
+== F08: 20 windows minimized through the shell, restored with Restore all
+  PASS F08 20 windows hidden; shell model has 20 rows
+  PASS F08 journal holds 20 entries
+  PASS F08 Restore all returned 20 windows in 169 ms, rows and journal cleared
+
+== R05: journal cannot be written -> minimize refused, window stays visible
+  PASS R05 window visible, no row, after a failed journal write
+  PASS R05 minimize works again once the journal is writable
+
+== R09: window minimized from a second output; output removed; restore lands on the remaining output
+  PASS R09 restored onto the remaining output (monitor 0, workspace 1)
+
+== R10: pinned floating window really hides while minimized and comes back pinned + floating
+  PASS R10 pinned window hidden with pin cleared
+  PASS R10 restored pinned + floating on workspace 1
+
+== R15: app fullscreen -> no strip drawn, Minimize refused; leaving fullscreen brings the strip back
+  PASS R15 fullscreen client occupies y=0 (no reserved strip)
+  PASS R15 minimize refused while fullscreen
+  PASS R15 strip reserved again after leaving fullscreen (y=81)
+
+scenarios: 0 failure(s); evidence in <lab>/scenarios

@@ -12,7 +12,7 @@ patch footprint stays visible (spec §6.1, §16).
 | Base revision | `7644cecdb947060682891a0db2a0cdc5c0b9e704` (2026-07-15, "borders/bars/focus: chase hyprland") |
 | Why this one | It is the `hyprpm.toml` commit pin for Hyprland `v0.56.2` (`efb50993…`), the build installed on the qualification host. The specification inspected `722f15a7…` (2026-09-05); that revision includes `<hyprland/src/desktop/view/window/Window.hpp>` and does not compile against the 0.56.2 headers. |
 | License | BSD-3-Clause, Copyright (c) 2023 Hypr Development (see THIRD_PARTY_NOTICES) |
-| Reference checkout | `native/upstream/` (git clone at the base revision; not part of the shell package) |
+| Reference checkout | `native/upstream/` — not committed (`.gitignore`); recreate with `git clone https://github.com/hyprwm/hyprland-plugins native/upstream && git -C native/upstream checkout 7644cecdb947060682891a0db2a0cdc5c0b9e704` |
 | Unmodified build check | `make -C native/upstream/hyprbars` builds cleanly on the host (16.8 s, 396,864-byte `.so`) and loads into the nested test session |
 
 ## Files derived from Hyprbars
@@ -34,7 +34,10 @@ patch footprint stays visible (spec §6.1, §16).
 5. **Double-click on the title region only** toggles Maximize/Restore size; buttons never double-click.
 6. **Suspended until a shell service completes the readiness handshake**; suspended again when the shell disappears for longer than the grace period. Reserved height becomes 0 so clients get their space back.
 7. **Touch input dropped** for the G0 prototype (upstream supports it); to be re-qualified.
-8. **Glyphs are text** (`≡ — □ ❐ ✕`) rendered through the compositor's text renderer; the stable release replaces them with bundled path icons.
+8. **Glyphs are cairo paths** (menu, minimize, maximize, restore, close) rendered into textures through `createTexture(cairo_surface_t*)`, cached per glyph/size/colour. Upstream renders text glyphs with the text renderer. No icon font.
+10. **Appearance pushed by the shell.** Colours, font, control side and size, and per-class exclusions arrive over the socket (`theme`/`settings` messages) and take precedence over `plugin:grabbar:*` while set, so the strip follows the Omarchy theme without config edits.
+11. **Right-click opens the window menu** (a `menuRequest` to the shell); upstream has no menu.
+12. **`decorate()` window rule** disables the reservation too (upstream reserves the band even for `nodecoration` windows).
 
 ## Not changed
 

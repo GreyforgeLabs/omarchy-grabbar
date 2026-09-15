@@ -1,0 +1,83 @@
+
+== foot (foot): foot
+  window 0x557ff429fe20 token=g1789484393-4 at=12,81 size=1576x907 floating=false xwayland=false
+  PASS strip reserved above the client (client y=81)
+  PASS maximize (1576 -> 1576 px) and restore size by button
+  PASS minimize by button, restore returns the same window
+  PASS title drag -> floating and moved (y 81 -> 195)
+  PASS close by button (graceful close request)
+
+== chromium (chromium): chromium --user-data-dir=<lab>/profiles/chromium --no-first-run --ozone-platform=wayland about:blank
+  window 0x557ff429fe20 token=g1789484393-5 at=12,81 size=1576x907 floating=false xwayland=false
+  PASS strip reserved above the client (client y=81)
+  PASS maximize (1576 -> 1576 px) and restore size by button
+  PASS minimize by button, restore returns the same window
+  PASS title drag -> floating and moved (y 81 -> 195)
+  PASS close by button (graceful close request)
+
+apps: 2 run, 0 failure(s); evidence in <lab>/apps
+
+== firefox (firefox): env MOZ_ENABLE_WAYLAND=1 firefox --new-instance --profile <lab>/profiles/firefox about:blank
+  window 0x557ff429fe20 token=g1789484393-6 at=12,81 size=1576x907 floating=false xwayland=false
+  PASS strip reserved above the client (client y=81)
+  PASS maximize (1576 -> 1576 px) and restore size by button
+  PASS minimize by button, restore returns the same window
+  PASS title drag -> floating and moved (y 81 -> 195)
+  PASS close by button (graceful close request)
+
+== konsole (org.kde.konsole): konsole
+  window 0x557ff429fe20 token=g1789484393-7 at=12,81 size=1576x907 floating=false xwayland=false
+  PASS strip reserved above the client (client y=81)
+  PASS maximize (1576 -> 1576 px) and restore size by button
+  PASS minimize by button, restore returns the same window
+  PASS title drag -> floating and moved (y 81 -> 195)
+  PASS close by button (graceful close request)
+
+== dolphin (org.kde.dolphin): dolphin --new-window /tmp
+  window 0x557ff429fe20 token=g1789484393-8 at=12,81 size=1576x907 floating=false xwayland=false
+  PASS strip reserved above the client (client y=81)
+  PASS maximize (1576 -> 1576 px) and restore size by button
+  PASS minimize by button, restore returns the same window
+  PASS title drag -> floating and moved (y 81 -> 195)
+  PASS close by button (graceful close request)
+
+apps: 3 run, 0 failure(s); evidence in <lab>/apps
+
+== kate (org.kde.kate): kate -n --startanon
+  window 0x557ff429fe20 token=g1789484393-9 at=12,81 size=1576x907 floating=false xwayland=false
+  PASS strip reserved above the client (client y=81)
+  PASS maximize (1576 -> 1576 px) and restore size by button
+  PASS minimize by button, restore returns the same window
+  PASS title drag -> floating and moved (y 81 -> 195)
+  PASS close by button (graceful close request)
+
+== nautilus (org.gnome.Nautilus): nautilus --new-window /tmp
+  window 0x557ff430b700 token=g1789484393-10 at=12,81 size=1576x907 floating=false xwayland=false
+  PASS strip reserved above the client (client y=81)
+  PASS maximize (1576 -> 1576 px) and restore size by button
+  PASS minimize by button, restore returns the same window
+  PASS title drag -> floating and moved (y 81 -> 195)
+  PASS close by button (graceful close request)
+
+== mpv (mpv): mpv --idle=yes --force-window=yes --no-config
+  window 0x557ff4167ea0 token=g1789484393-11 at=12,81 size=1576x907 floating=false xwayland=false
+  PASS strip reserved above the client (client y=81)
+  PASS maximize (1576 -> 1576 px) and restore size by button
+  PASS minimize by button, restore returns the same window
+  PASS title drag -> floating and moved (y 81 -> 195)
+  PASS close by button (graceful close request)
+
+== chromium-x11 (chromium): chromium --user-data-dir=<lab>/profiles/chromium-x11 --no-first-run --ozone-platform=x11 about:blank
+  FAIL chromium-x11 never mapped a window of class chromium
+
+apps: 4 run, 1 failure(s); evidence in <lab>/apps
+
+== chromium-x11 (Chromium): chromium --user-data-dir=<lab>/profiles/chromium-x11 --no-first-run --ozone-platform=x11 about:blank
+  window 0x557ff4167d20 token=g1789484393-13 at=12,81 size=1576x907 floating=false xwayland=true
+  PASS strip reserved above the client (client y=81)
+  PASS maximize (1576 -> 1576 px) and restore size by button
+  PASS minimize by button, restore returns the same window
+  PASS title drag -> floating and moved (y 81 -> 195)
+  PASS close by button (graceful close request)
+
+apps: 1 run, 0 failure(s); evidence in <lab>/apps

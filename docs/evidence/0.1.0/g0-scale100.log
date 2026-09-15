@@ -1,0 +1,47 @@
+
+== shell stand-in (declares restore access, commits every minimize request)
+PASS backend active after readiness handshake
+token g1789485962-46
+client at 12,46 size [1576, 942]; strip y=29; close x=1568 max x=1536 min x=1504
+  shot <lab>/g0-final/01-active.png
+
+== F03: press Close, drag away, release -> no close
+  shot <lab>/g0-final/02-close-hover.png
+PASS F03 drag-away cancels Close (1 window(s) before and after)
+
+== F04: Maximize / Restore size by button
+  shot <lab>/g0-final/03-maximized.png
+maximized client at [12, 46] size [1576, 942]
+PASS F04 maximize keeps the strip and restore size returns (strip stayed reachable at y=29)
+
+== double-click on the title toggles maximize
+PASS double-click maximize/restore
+
+== F06: Minimize by button -> hidden on Grabbar's workspace, then restore
+  shot <lab>/g0-final/04-minimized.png
+  shot <lab>/g0-final/05-restored.png
+PASS F06 minimize -> restore returns the same window (address 0x557ff4345400) tiled
+
+== stale-target: a token from before a restore/close cycle cannot act on another window
+PASS restore of a visible window refused, not redirected
+
+== F10: drag the title of a tiled window -> detaches into floating and follows the pointer
+after drag: at [19, 270] size [960, 600]
+  shot <lab>/g0-final/06-dragged-floating.png
+PASS F10 tiled drag detaches; Move freely off returns it to the layout
+
+== F04b: with two tiled windows, Maximize fills the work area and Restore size rejoins the layout
+  shot <lab>/g0-final/06b-two-windows-maximized.png
+PASS F04b maximize 781 -> 1576 px wide with the strip kept; close by action; dead token is stale
+
+== R02: shell service lost with a minimized window -> returned after the grace period, controls suspended
+  shot <lab>/g0-final/07-recovered-suspended.png
+PASS R02 hidden window returned within the 2 s grace and the strip suspended
+
+== R03: native unload with a minimized window -> window returned before unload
+  shot <lab>/g0-final/08-after-unload.png
+PASS R03 unload returned the hidden window
+
+== reload for further manual work
+
+all G0 nested scenarios passed; evidence in <lab>/g0-final

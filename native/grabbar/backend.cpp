@@ -976,11 +976,12 @@ void CGrabbarBackend::clientEvent(SGrabbarClient* c, uint32_t mask) {
 }
 
 void CGrabbarBackend::onShellLost(const char* why) {
-    Log::logger->log(Log::INFO, "[grabbar] shell service lost ({}); minimize disabled, {} ms grace", why, GRABBAR_GRACE_MS);
+    const auto GRACE = std::clamp<int64_t>(g_pGlobalState->config.shellGraceMs->value(), 500, 60000);
+    Log::logger->log(Log::INFO, "[grabbar] shell service lost ({}); minimize disabled, {} ms grace", why, GRACE);
     m_shell = nullptr;
     m_ready = false;
     if (m_graceTimer && !m_stopping)
-        m_graceTimer->updateTimeout(std::chrono::milliseconds(GRABBAR_GRACE_MS));
+        m_graceTimer->updateTimeout(std::chrono::milliseconds(GRACE));
     for (auto& b : g_pGlobalState->bars)
         if (b)
             b->damageEntire();

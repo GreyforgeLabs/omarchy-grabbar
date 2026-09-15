@@ -1,0 +1,17 @@
+
+== start the standalone service host on the nested display
+PASS handshake: service welcomed as shell, restore host declared, minimize enabled
+
+== two-phase minimize through the service (journal written before commit)
+PASS minimize committed; journal at <lab>/g1-final/state/grabbar/state.json holds one minimized entry without a title
+
+== restore through the service IPC
+PASS restore confirmed by the compositor, row and journal cleared
+
+== service process killed with a minimized window -> backend grace recovery
+PASS backend returned the window and suspended after the service died
+
+== service restarts with a stale journal entry -> reconciliation clears it without moving the window
+PASS reconciliation: journal entry for a visible window cleared, window untouched
+
+all service scenarios passed; evidence in <lab>/g1-final

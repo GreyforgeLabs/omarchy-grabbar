@@ -4,7 +4,7 @@
            GID: 1000 (gfarch)
         Signal: 11 (SEGV) si_code: SI_KERNEL
      Timestamp: Tue 2026-09-15 02:13:43 EDT (1min 3s ago)
-  Command Line: Hyprland -c /home/gfarch/Projects/omarchy-grabbar/tests/integration/nested/autoload-failed.lua
+  Command Line: Hyprland -c ~/Projects/omarchy-grabbar/tests/integration/nested/autoload-failed.lua
     Executable: /usr/bin/Hyprland
  Control Group: /user.slice/user-1000.slice/user@1000.service/session.slice/wayland-wm@hyprland.desktop.service
           Unit: user@1000.service

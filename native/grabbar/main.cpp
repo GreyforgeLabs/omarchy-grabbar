@@ -111,6 +111,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     cfg.buttonSize         = makeShared<Config::Values::CIntValue>("plugin:grabbar:button_size", "Button target size in logical pixels", 32);
     cfg.padding            = makeShared<Config::Values::CIntValue>("plugin:grabbar:padding", "Horizontal padding in logical pixels", 4);
     cfg.textSize           = makeShared<Config::Values::CIntValue>("plugin:grabbar:text_size", "Title text size", 11);
+    cfg.shellGraceMs       = makeShared<Config::Values::CIntValue>("plugin:grabbar:shell_grace_ms", "How long hidden windows wait for the shell service to come back before they are returned", GRABBAR_GRACE_MS);
     cfg.textFont           = makeShared<Config::Values::CStringValue>("plugin:grabbar:text_font", "Title font family", "Sans");
     cfg.barColor           = makeShared<Config::Values::CColorValue>("plugin:grabbar:bar_color", "Strip color for the focused window", 0xff2a2f36);
     cfg.inactiveBarColor   = makeShared<Config::Values::CColorValue>("plugin:grabbar:inactive_bar_color", "Strip color for unfocused windows", 0xff20242a);
@@ -119,7 +120,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     cfg.closeHoverColor    = makeShared<Config::Values::CColorValue>("plugin:grabbar:close_hover_color", "Hovered Close background", 0xd0c0392b);
 
     const std::vector<SP<Config::Values::IValue>> VALUES = {cfg.enabled,  cfg.buttonsLeft, cfg.barHeight,        cfg.buttonSize, cfg.padding,    cfg.textSize,
-                                                            cfg.textFont, cfg.barColor,    cfg.inactiveBarColor, cfg.textColor,  cfg.hoverColor, cfg.closeHoverColor};
+                                                            cfg.textFont, cfg.barColor,    cfg.inactiveBarColor, cfg.textColor,  cfg.hoverColor, cfg.closeHoverColor,
+                                                            cfg.shellGraceMs};
     for (const auto& v : VALUES)
         HyprlandAPI::addConfigValueV2(PHANDLE, v);
 

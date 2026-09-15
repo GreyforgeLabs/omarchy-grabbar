@@ -3,6 +3,69 @@
 Evidence for the release gates in spec §15. Everything here was measured on
 the host below; nothing is a claim for other machines or versions.
 
+## 0.1.0 preview — 2026-09-15 (G1 + G2 + G3 evidence)
+
+### Host and rig
+
+| Item | Value |
+| --- | --- |
+| Machine | greyarch (Omarchy 4.0.x, Lua config), Hyprland 0.56.2 `efb50993…`, Quickshell 0.3.1 |
+| Native build | `make -C native/grabbar CXX=g++`, g++ 16.2.1, 584 KB `grabbar.so` |
+| Rig | nested Hyprland (`tests/integration/nested/lab.lua`, 1600×1000, `resize_on_border`, `no_warps`) on a headless output created with `hyprctl output create headless GRABBAR-LAB`, launched with `[workspace <ws> silent]`; the operator's desktop was never used |
+| Shell | a second **real** `omarchy-shell` (`qs -p /usr/share/omarchy/shell`) on the nested display with an isolated `HOME` (its own `shell.json`, plugin copy and state dir) — see "Sandboxed shell" below |
+| Input | `tests/integration/vpointer` (`zwlr_virtual_pointer_v1`), now with `rclick`/`mclick` |
+
+### Suites and results (all PASS)
+
+| Suite | Result | Evidence |
+| --- | --- | --- |
+| `tests/run.sh` (offline) | model 23, journal, autoload, protocol, syntax | CI-equivalent |
+| `g0-nested.sh` at scale 1.0 | 10/10: F03, F04, F04b, double-click, F06, stale target, F10, R02, R03 | `docs/evidence/0.1.0/g0-scale100.log` |
+| `g0-nested.sh` at scale 1.5 and 2.0 | 10/10 each; glyphs and hover boxes align at both scales | `g0-scale150.log`, `g0-scale200.log`, `scale150-strip.png`, `scale200-close-hover.png` |
+| `g1-service-nested.sh` (standalone service host) | 5/5: handshake, two-phase minimize with journal before commit (0600/0700, no title), restore via IPC, service death → grace recovery, stale journal reconciled without moving | `g1-service.log` |
+| `apps-nested.sh` | 9/9 applications × 5 checks (see COMPATIBILITY.md) | `apps.log`, `apps/*.png` |
+| `scenarios-nested.sh` with the sandboxed shell | F02, F05, F08 (20 windows: 20 rows, 20 journal entries, Restore all in 169 ms), R05, R09, R10, R15 — all PASS | `scenarios.log`, `scenarios/*.png` |
+| `stress-nested.sh` | 500/500 minimize+restore cycles through the shell IPC; p50 164ms, p95 170ms, max 186ms per round trip (two `qs ipc` process spawns included); compositor PSS 99826 → 99827 kB, fds 85 → 83; shell PSS 194281 → 190177 kB, fds 73 → 72; tracked entries constant | `stress.log` |
+| `startup-nested.sh all` | repro of the 2026-09-15 failure (6213 loads, core dump), fixed cold start, 3 reloads, unload/load/reload, socket after reload, boot guard 1–3 | `startup.log`, `docs/evidence/startup/` |
+| Sandboxed `omarchy-shell` walk-through | bar widget mounts and declares restore access; Minimize button → count in the bar → drawer → Restore by click; menu button and right-click open the window menu; Move freely toggles and shows its check; Hide Grabbar for foot → confirmation → strip gone, exclusion persisted through the host's `updateEntryInline` into `shell.json` and mirrored; Settings: Show Grabbar again, Large, Left, Off (windows returned, strips off, `decorations: paused`), On | `docs/screenshots/*.png`, `sandbox-shell.log` |
+
+### Measured against §11 budgets
+
+| Metric | Budget | Measured |
+| --- | --- | --- |
+| Idle background work | zero polling | no timers except the one-shot grace and the one-shot boot marker; no subprocesses; rendering only in the decoration pass |
+| Incremental idle CPU (10 windows, 2×30 s, pointer still) | ≤ 0.2 % of one CPU | compositor 5 and 0 ticks/30 s with Grabbar vs 1 and 0 without (100 ticks/s) → < 0.02 %; shell 0 ticks |
+| Incremental PSS, compositor (10 windows) | ≤ 25 MiB | 99898 kB loaded vs 99624 kB unloaded → **≈ 0.27 MiB** (glyph textures + decorations) |
+| Larger working set | no unbounded growth | 20 windows minimized/restored (F08) and 500 cycles: PSS flat |
+| Completed simple transition | p95 ≤ 250 ms | 170ms (full round trip minimize + restore through two CLI IPC calls) |
+| Button acknowledgment | p95 ≤ 100 ms | not instrumented; hover/press redraw is synchronous in the decoration pass |
+| Drawer open | p95 ≤ 150 ms | not instrumented |
+
+### Sandboxed shell (how to reproduce)
+
+```sh
+# 1. headless output + nested compositor (never the live one)
+hyprctl output create headless GRABBAR-LAB
+WS=$(hyprctl -j monitors | jq '.[] | select(.name=="GRABBAR-LAB") | .activeWorkspace.id')
+hyprctl dispatch "hl.dsp.exec_cmd([[ [workspace $WS silent] env HYPRLAND_INSTANCE_SIGNATURE= Hyprland -c $PWD/tests/integration/nested/lab.lua ]])"
+SIG=<new dir under $XDG_RUNTIME_DIR/hypr>; NESTED_DISPLAY=<wayland-N from its hyprland.log>
+hyprctl -i $SIG plugin load $PWD/native/grabbar/grabbar.so
+# 2. an isolated HOME with a minimal shell.json (grabbar in the right section) and this checkout
+#    copied to $H/.config/omarchy/plugins/tech.greyforge.grabbar, themes copied, state dir empty
+env -i HOME=$H PATH=$PATH XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR WAYLAND_DISPLAY=$NESTED_DISPLAY \
+  HYPRLAND_INSTANCE_SIGNATURE=$SIG OMARCHY_PATH=/usr/share/omarchy QT_QPA_PLATFORM=wayland \
+  qs -p /usr/share/omarchy/shell
+# 3. drive it: WAYLAND_DISPLAY=$NESTED_DISPLAY qs ipc -p /usr/share/omarchy/shell call tech.greyforge.grabbar status
+```
+
+Screenshots come from inside the nested session (`WAYLAND_DISPLAY=$NESTED_DISPLAY grim`).
+
+### Not covered by 0.1.0
+
+Modal families, touch, native tooltips, other layouts, three outputs,
+portrait/mixed-refresh outputs, the usability study (§14.5), a cold
+UWSM/systemd login on hardware other than the development host.
+
 ## G0 — native feasibility (2026-09-15)
 
 **Verdict: passed for the narrow matrix in `COMPATIBILITY.md`.** A small

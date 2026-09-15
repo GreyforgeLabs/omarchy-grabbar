@@ -1,0 +1,45 @@
+[32m  INFO[0m: Launching config: "/usr/share/omarchy/shell/shell.qml"
+[32m  INFO[0m: Shell ID: "c0240dfe8c8e8a421e1f8db23a03fc60" Path ID "c0240dfe8c8e8a421e1f8db23a03fc60"
+[34m DEBUG[97m qml[0m: omarchy-shell paths omarchyPath=/usr/share/omarchy shellDir=/usr/share/omarchy/shell firstPartyPluginsDir=/usr/share/omarchy/shell/plugins defaultsPath=/usr/share/omarchy/config/omarchy/shell.json userConfigPath=<lab>/home/.config/omarchy/shell.json
+[32m  INFO[0m: Configuration Loaded
+[34m DEBUG[97m qml[0m: grabbar: reconcile {"reconstructed":[],"completed":[],"cancelled":[],"cleared":[],"removed":[],"recovered":[],"quarantined":false}
+[33m  WARN[97m scene[0m: QML IpcHandler at @Ui/Panel.qml[48:3]: Handler was registered but will not be used because another handler is registered for target omarchy.audio
+[33m  WARN[97m scene[0m: QML IpcHandler at file:///usr/share/omarchy/shell/plugins/panels/clock/BarWidget.qml[129:3]: Handler was registered but will not be used because another handler is registered for target omarchy.clock
+[33m  WARN[97m scene[0m: QML IpcHandler at @Ui/Panel.qml[48:3]: Handler was registered but will not be used because another handler is registered for target omarchy.audio
+[33m  WARN[97m scene[0m: QML IpcHandler at file:///usr/share/omarchy/shell/plugins/panels/clock/BarWidget.qml[129:3]: Handler was registered but will not be used because another handler is registered for target omarchy.clock
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b8a883400) QLocalSocket::PeerClosedError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfec00) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b8a883400) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfec00) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b8a883400) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfeac0) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b8a883400) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfeac0) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b8a883400) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfe200) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b8a883400) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfe200) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfe980) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfe200) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfe980) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfe200) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfe980) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfe200) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfe980) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfe200) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b8a883400) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfe200) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b8a883400) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfe200) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b8a883400) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfe200) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b8a883400) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfe340) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b8a883400) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfe340) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b8a883400) QLocalSocket::ServerNotFoundError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b7cbfe340) QLocalSocket::ServerNotFoundError
+[34m DEBUG[97m qml[0m: grabbar: reconcile {"reconstructed":[],"completed":[],"cancelled":[],"cleared":[],"removed":[],"recovered":[],"quarantined":false}
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b8a7d9580) QLocalSocket::PeerClosedError
+[33m  WARN[97m quickshell.io.socket[0m: Socket error for Socket(0x7f1b8a7db9c0) QLocalSocket::ServerNotFoundError
+[34m DEBUG[97m qml[0m: grabbar: reconcile {"reconstructed":[],"completed":[],"cancelled":[],"cleared":[],"removed":[],"recovered":[],"quarantined":false}
