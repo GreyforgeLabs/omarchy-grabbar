@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-#define GRABBAR_VERSION       "0.1.0"
+#define GRABBAR_VERSION       "0.1.1"
 #define GRABBAR_PROTOCOL      1
 #define GRABBAR_WORKSPACE     "special:grabbar-minimized"
 #define GRABBAR_GRACE_MS      2000

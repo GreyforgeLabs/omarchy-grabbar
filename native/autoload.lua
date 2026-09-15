@@ -29,14 +29,23 @@ do
     local s = f:read("*l"); f:close(); return s
   end
   local function write(path, s)
-    local f = io.open(path, "w"); if not f then return false end
-    f:write(s or "", "\n"); f:close(); return true
+    local tmp = path .. ".tmp"
+    local f = io.open(tmp, "w"); if not f then return false end
+    local written = f:write(s or "", "\n")
+    local closed = f:close()
+    if not written or not closed then os.remove(tmp); return false end
+    local renamed = os.rename(tmp, path)
+    if not renamed then os.remove(tmp); return false end
+    return true
   end
   local function exists(path)
     local f = io.open(path, "r"); if f then f:close(); return true end; return false
   end
 
   if exists(so) and exists(dir .. "/enabled") then
+    -- Without an instance identity, the next login cannot distinguish this
+    -- attempt from a previous failed start. Keep native controls off.
+    if his == "" then return end
     local last_attempt = read(dir .. "/last-attempt")
     local last_ok      = read(dir .. "/last-ok")
     local previous_failed = last_attempt ~= nil and last_attempt ~= "" and last_attempt ~= his and last_attempt ~= last_ok
@@ -50,7 +59,12 @@ do
     else
       -- Record this instance before declaring, so a start that never gets far
       -- enough for the plugin to confirm health leaves the attempt on record.
-      if his ~= "" and last_attempt ~= his then write(dir .. "/last-attempt", his) end
+      if last_attempt ~= his and not write(dir .. "/last-attempt", his) then
+        pcall(function()
+          hl.notification.create({ text = "Grabbar: native controls stayed off because startup recovery state could not be saved.", timeout = 12000 })
+        end)
+        return
+      end
       hl.plugin.load(so)
     end
   end

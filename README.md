@@ -62,7 +62,7 @@ tested matrix: `docs/COMPATIBILITY.md`.
 
 ## Status
 
-**0.1.0 preview** (spec milestone G3). The whole workflow — strip, menu,
+**0.1.1 preview** (spec milestone G3). The whole workflow — strip, menu,
 drawer, settings, journal, recovery — is implemented and qualified on one
 exact desktop build: **Omarchy 4.0.x with Hyprland 0.56.2
 (`efb50993…`)** and Quickshell 0.3.1. The native part is a compositor
@@ -72,6 +72,10 @@ holds the evidence. Anything not listed there is unqualified, not
 "probably fine".
 
 ## Install
+
+This is a preview release. Clean-install and full-login qualification of
+the latest loader hardening remains pending. See [release safety](docs/RELEASE-SAFETY.md)
+for verified results and the remaining stable-release gate.
 
 Two parts: the shell plugin (drawer, menu, settings, journal) and the native
 compositor plugin (the strip itself). Everything works without the native
@@ -116,9 +120,13 @@ grabbar autoload status
 ```
 
 `enable` never loads anything itself; the plugin loads at the next
-`hyprctl reload` or login. The loader has a boot guard: if a start with
-Grabbar ever fails to stay up for 15 s, the next start skips the plugin,
-tells you, and waits for `grabbar autoload retry`. Read
+`hyprctl reload` or login. The loader records each new compositor's startup
+attempt before declaring the plugin. If that attempt has no matching health
+marker on the next start, the loader skips the plugin until
+`grabbar autoload retry`. Missing session identity or failure to save the
+attempt also keeps native controls off. A health marker after 15 seconds
+does not certify later runtime stability, and manual plugin loading bypasses
+this guard. Read
 [`docs/AUTOLOAD.md`](docs/AUTOLOAD.md) for why this line is shaped the way
 it is — an earlier, conditional version of it broke a desktop.
 
@@ -269,7 +277,7 @@ sandboxed `omarchy-shell` and the scripts are described in
 | `tests/integration/stress-nested.sh` | 500 minimize/restore cycles watching memory, fds and tracked entries |
 | `tests/integration/startup-nested.sh` | Cold start, reloads, load/unload and the boot guard |
 
-## Known limitations (0.1.0)
+## Known limitations (0.1.1)
 
 - Qualified on one Hyprland build only. A different build needs a rebuild
   and a rerun of the nested suites.

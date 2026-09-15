@@ -4,14 +4,21 @@
 # touched: nothing here calls hyprctl without -i <nested signature> except the
 # initial exec that spawns the nested compositor as a Wayland client.
 #
-#   HEADLESS_WS=<workspace id on the headless output> tests/integration/startup-nested.sh [repro|fixed|all]
+#   HEADLESS_WS=<workspace id on the headless output> tests/integration/startup-nested.sh [fixed|guard|all]
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+MODE="${1:-all}"
+case "$MODE" in
+  fixed|guard|all) ;;
+  repro)
+    echo "The crash reproducer is retired. See docs/AUTOLOAD.md for preserved evidence; use fixed, guard, or all." >&2
+    exit 2 ;;
+  *) echo "Usage: $0 [fixed|guard|all]" >&2; exit 2 ;;
+esac
 export GRABBAR_SO="${GRABBAR_SO:-$ROOT/native/grabbar/grabbar.so}"
 export GRABBAR_NESTED_BASE="$ROOT/tests/integration/nested/base.lua"
 HEADLESS_WS="${HEADLESS_WS:?workspace id that lives on the headless output}"
 OUT="${OUT:-$ROOT/docs/evidence/startup}"
-MODE="${1:-all}"
 mkdir -p "$OUT"
 GUARD_STATE="${GUARD_STATE:-$(mktemp -d)}"   # state dir for the boot-guard scenario (never the real one)
 HOST_SIG="$HYPRLAND_INSTANCE_SIGNATURE"
@@ -19,7 +26,8 @@ HYPRDIR="$XDG_RUNTIME_DIR/hypr"
 HOST_HYPR_PID="$(head -1 "$HYPRDIR/$HOST_SIG/hyprland.lock")"
 
 pass() { echo "PASS $*"; }
-fail() { echo "FAIL $*"; }
+FAILURES=0
+fail() { echo "FAIL $*"; FAILURES=$((FAILURES + 1)); }
 say()  { echo; echo "== $*"; }
 
 # Guard: the headless workspace must not be on the operator's focused monitor.
@@ -32,7 +40,7 @@ for m in json.load(sys.stdin):
 NESTED_SIG=""; NESTED_PID=""
 launch() { # $1 = lua config
   local before; before="$(ls "$HYPRDIR")"
-  hyprctl dispatch "hl.dsp.exec_cmd([[ [workspace $HEADLESS_WS silent] env HYPRLAND_INSTANCE_SIGNATURE= GRABBAR_SO=$GRABBAR_SO GRABBAR_NESTED_BASE=$GRABBAR_NESTED_BASE GRABBAR_AUTOLOAD_LUA=$ROOT/native/autoload.lua GRABBAR_STATE_DIR=$GUARD_STATE Hyprland -c $1 ]])" >/dev/null
+  hyprctl dispatch "hl.dsp.exec_cmd([[ [workspace $HEADLESS_WS silent] env HYPRLAND_INSTANCE_SIGNATURE= GRABBAR_SO=$GRABBAR_SO GRABBAR_NESTED_BASE=$GRABBAR_NESTED_BASE GRABBAR_AUTOLOAD_LUA=$ROOT/native/autoload.lua GRABBAR_STATE_DIR=$GUARD_STATE Hyprland -c $1 ]])" >/dev/null || return 1
   for _ in $(seq 1 60); do
     sleep 0.25
     for d in $(ls "$HYPRDIR"); do
@@ -50,8 +58,6 @@ launch() { # $1 = lua config
   echo "nested sig=$NESTED_SIG pid=${NESTED_PID:-<already gone>}"
   return 0
 }
-lock_published() { [[ -s "$HYPRDIR/$NESTED_SIG/hyprland.lock" ]]; }
-recent_core() { coredumpctl list --since "-2min" --no-pager 2>/dev/null | grep -c '/usr/bin/Hyprland'; }
 nc() { timeout 3 hyprctl -i "$NESTED_SIG" "$@" 2>&1; }
 alive() { [[ -n "$NESTED_PID" ]] && kill -0 "$NESTED_PID" 2>/dev/null; }
 stop_nested() {
@@ -67,29 +73,6 @@ ready_within() { # $1 seconds; ready = hyprctl answers version
 }
 plugin_count() { nc plugins list | grep -c 'Plugin grabbar'; }
 logcounts() { local L="$HYPRDIR/$NESTED_SIG/hyprland.log"; printf 'loaded=%s unloaded=%s twice=%s reloads=%s\n' "$(grep -c 'Plugin grabbar loaded' "$L")" "$(grep -c 'Plugin grabbar unloaded' "$L")" "$(grep -c 'Cannot load a plugin twice' "$L")" "$(grep -c 'Reloading the config' "$L")"; }
-
-if [[ "$MODE" == repro || "$MODE" == all ]]; then
-  say "REPRO: cold start with the failed (conditional) autoload block"
-  launch "$ROOT/tests/integration/nested/autoload-failed.lua" || exit 1
-  START=$(date +%s); CORES_BEFORE="$(recent_core)"
-  if [[ -n "$NESTED_PID" ]] && ready_within 20 && sleep 3 && [[ "$(plugin_count)" == 1 ]] && nc version >/dev/null; then
-    echo "compositor answered; checking whether it stays healthy"
-    sleep 5; C1="$(logcounts)"; sleep 5; C2="$(logcounts)"; echo "$C1"; echo "$C2"
-    if [[ "$C1" == "$C2" ]] && alive; then fail "repro: the failed block did NOT reproduce the hang here"; else pass "repro: compositor unstable after start ($C2)"; fi
-  else
-    ELAPSED=$(( $(date +%s) - START ))
-    if alive; then pass "repro: compositor never became ready in ${ELAPSED}s (hang), still alive; $(logcounts)"
-    else
-      sleep 2
-      NEWCORES=$(( $(recent_core) - CORES_BEFORE ))
-      pass "repro: compositor died during startup after ${ELAPSED}s (lock published: $(lock_published && echo yes || echo no); new Hyprland core dumps: $NEWCORES); $(logcounts)"
-      (( NEWCORES > 0 )) && coredumpctl info --since "-2min" --no-pager 2>/dev/null | grep -c 'handlePluginLoads' | sed 's/^/  handlePluginLoads frames in trace: /'
-    fi
-  fi
-  cp "$HYPRDIR/$NESTED_SIG/hyprland.log" "$OUT/repro-hyprland.log" 2>/dev/null
-  logcounts | tee "$OUT/repro-counts.txt"
-  stop_nested; NESTED_SIG=""
-fi
 
 if [[ "$MODE" == fixed || "$MODE" == all ]]; then
   say "FIXED: cold start with the unconditional declaration"
@@ -158,3 +141,4 @@ if [[ "$MODE" == guard || "$MODE" == all ]]; then
 fi
 
 echo; echo "host Hyprland pid $HOST_HYPR_PID still alive: $(kill -0 "$HOST_HYPR_PID" && echo yes)"; echo "host plugins: $(hyprctl plugins list | head -1)"
+(( FAILURES == 0 ))

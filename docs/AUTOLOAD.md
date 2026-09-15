@@ -99,3 +99,39 @@ marker exists) are fine.
 What this does **not** prove: a real login through UWSM/systemd on the
 operator's GPU with the Omarchy bootstrap config. That is the controlled host
 trial in `SYSTEM-BREAKING-BUG.md`, which needs the operator's explicit go-ahead.
+
+## 2026-09-15 11:29 recurrence: retired the executable crash case
+
+The most recent OpenCode diagnosis (`ses_f5a49d5f5ffepe5UkTuIWTwgS1`)
+identified PID 490538 as another run of `nested/autoload-failed.lua`.
+The main desktop compositor, PID 1254, stayed alive. Its installed loader
+already matched `native/autoload.lua`; this was the old test case running
+again, not evidence of a regression in that loader.
+
+The startup suite's default `all` mode used to include the intentional crash.
+It now runs only the corrected-loader and boot-guard scenarios. `repro` and
+unknown modes exit with status 2 before accessing the compositor or creating
+state. The old Lua filename now raises a plain configuration error before
+loading any base config or plugin. The historical traces and qualification
+results above remain preserved; they describe earlier runs.
+
+Offline regression checks cover mode selection and the retired entry point
+without starting Hyprland. This change does not patch Hyprland's upstream
+reload implementation or claim a fresh login test.
+
+## Release hardening in the shipped loader
+
+`native/autoload.lua` now keeps controls off if the compositor identity is
+missing or the startup-attempt marker cannot be saved. Marker updates use a
+temporary file and checked write, close and rename operations, so a failed
+update cannot truncate a previous attempt. This is source-level behavior for
+all installations, not a workstation-only setting.
+
+`tests/unit/test_loader.py` executes this Lua file against an isolated fake
+Hyprland API. It checks stable declarations across evaluations, disabled and
+failed-start states, and missing identity / write / close / rename failures.
+CI installs Lua and requires these tests. The nested runner now returns a
+failure exit code when any of its assertions fails.
+
+See `RELEASE-SAFETY.md` for the qualification boundary. The boot marker is a
+startup recovery measure, not a guarantee against all compositor crashes.

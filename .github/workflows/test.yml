@@ -17,5 +17,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install Lua for required loader safety tests
+        run: sudo apt-get update && sudo apt-get install -y lua5.4
       - name: Offline test suite (model, journal, autoload, protocol, syntax)
         run: tests/run.sh

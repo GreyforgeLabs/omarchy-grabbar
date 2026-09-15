@@ -1,0 +1,47 @@
+
+== FIXED: cold start with the unconditional declaration
+nested sig=efb50993780079460b0cbed1363e2166a2de1d9f_1789489506_1793688471 pid=656580
+PASS fixed: ready in 0s
+PASS fixed: plugin loaded exactly once from config
+PASS fixed: no load/unload churn after start (loaded=1 unloaded=0 twice=0 reloads=0)
+
+== FIXED: three config reloads
+PASS fixed: still one plugin after 3 reloads; loaded=1 unloaded=0 twice=0 reloads=0
+
+== FIXED: hyprctl plugin unload / load / reload
+PASS fixed: unload leaves it unloaded (config still declares it, set unchanged -> no reload storm)
+PASS fixed: manual load after unload works
+PASS fixed: reload after manual load is stable; loaded=1 unloaded=0 twice=0 reloads=0
+
+== FIXED: backend socket and shell reconnect across a reload
+PASS fixed: backend socket present
+PASS fixed: backend answers status
+Grabbar 0.1.1 (protocol 1)
+epoch: 1789489520
+socket: /run/user/1000/grabbar/efb50993780079460b0cbed1363e2166a2de1d9f_1789489506_1793688471/backend.sock
+loaded=1 unloaded=0 twice=0 reloads=0
+
+== GUARD 1: armed, first start loads, health marker appears after 15s
+nested sig=efb50993780079460b0cbed1363e2166a2de1d9f_1789489530_781774913 pid=657454
+PASS guard1: plugin loaded via the shipped hook
+PASS guard1: last-attempt records this instance
+PASS guard1: no health marker yet
+
+== GUARD 2: kill the compositor before the health marker -> next start must skip the plugin
+nested sig=efb50993780079460b0cbed1363e2166a2de1d9f_1789489540_628054885 pid=657594
+PASS guard2: plugin NOT loaded after an unconfirmed previous start
+PASS guard2: skip recorded (efb50993780079460b0cbed1...)
+autoload        not-installed
+skipped start   efb50993780079460b0cbed1363e2166a2de1d9f_1789489530_781774913 (clear with: grabbar autoload retry)
+PASS guard2: reloads keep it skipped, compositor alive
+
+== GUARD 3: retry re-arms; reload loads it; health marker confirms; a fresh start loads normally
+PASS guard3: loaded after retry + reload
+PASS guard3: attempt re-recorded
+waiting 18s for the health marker
+PASS guard3: health marker written by the native plugin
+nested sig=efb50993780079460b0cbed1363e2166a2de1d9f_1789489572_1131808547 pid=658589
+PASS guard3: next start after a healthy session loads normally
+
+host Hyprland pid 1254 still alive: yes
+host plugins:

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.1 — 2026-09-15 (public preview)
+
+- Keep native controls off when the compositor identity is missing or the
+  startup-attempt marker cannot be saved; replace markers atomically.
+- Require nine behavioral tests of the shipped Lua loader in CI.
+- Retire the executable reload-loop reproducer from default/all startup tests.
+- Return a failing exit code when nested startup assertions fail.
+- Include the current external-focus restoration fix in the native build.
+- Record exact build and nested startup/recovery evidence. Clean-install and
+  full-login qualification remains pending; see `docs/RELEASE-SAFETY.md`.
+
 ## 0.1.0 — 2026-09-15 (public preview)
 
 First public release: the complete core workflow on one qualified desktop
