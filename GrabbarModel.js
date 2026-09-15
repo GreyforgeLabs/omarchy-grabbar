@@ -459,11 +459,11 @@ function rowsWithOrdinals(entries) {
   var counts = {}
   var list = entries || []
   for (var i = 0; i < list.length; i++) {
-    var key = (list[i].class || "") + " " + (list[i].title || "")
+    var key = (list[i].class || "") + "\u0000" + (list[i].title || "")
     counts[key] = (counts[key] || 0) + 1
   }
   return list.map(function (e) {
-    var key = (e.class || "") + " " + (e.title || "")
+    var key = (e.class || "") + "\u0000" + (e.title || "")
     seen[key] = (seen[key] || 0) + 1
     var label = e.title || e.class || "Window"
     if (counts[key] > 1) label += " (" + seen[key] + ")"
