@@ -60,4 +60,3 @@ changed: documented the incident in source and installed GRABBAR directories
 current state: native autoload disabled; plugin defect open; login unverified
 next step: confirm desktop recovery, then investigate native behavior in a VM
 read next: the recovery record above; native/grabbar/main.cpp; this warning
-
