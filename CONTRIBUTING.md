@@ -53,3 +53,9 @@ Describe what changed and how it was tested (which nested suite, which
 Hyprland build). Keep the upstream base and the patch footprint visible:
 if you touch a file derived from Hyprbars, note the behavioural change in
 `docs/UPSTREAM.md`.
+
+## Release distribution
+
+Releases include the directory submission/update stage in
+[docs/DISTRIBUTION.md](docs/DISTRIBUTION.md). Preserve preview qualifications
+and record each target's receipt and pending review separately.

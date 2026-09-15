@@ -17,3 +17,11 @@ shipped loader carries a boot guard; the rules that keep it fixed are:
   is the operator's live plugin. Syncing it is the operator's call.
 - Do not `pkill -f <pattern>` from an agent shell (it matches the agent's own
   command line); kill by PID.
+
+## Release distribution
+
+After an authorized Grabbar release, follow `docs/DISTRIBUTION.md` and the
+shared `omarchy-plugin-distribution` skill when available. Submit/update
+eligible directory listings and retain exact-commit receipts; distinguish
+submission from acceptance. Complete repository changes before marketplace
+validation so subsequent documentation commits do not stale its scan.
