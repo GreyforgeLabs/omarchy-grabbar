@@ -1,0 +1,189 @@
+#!/usr/bin/env bash
+# Grabbar CLI (spec §13). Read-only diagnostics and recovery; the GUI is the
+# primary path for everyday use. Exit codes:
+#   0 ok · 2 usage · 3 backend unavailable · 4 stale target · 5 restore UI
+#   unavailable · 6 state write failed · 7 incomplete recovery
+set -u
+
+PLUGIN_ID="tech.greyforge.grabbar"
+HERE="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+BACKEND_PY="$HERE/helpers/grabbar_backend.py"
+ACTION="${1:-open}"
+shift || true
+
+# Shell IPC. Prints the method's answer; empty when the shell service is not
+# running or the method is missing (omarchy-shell reports those on stderr).
+ipc() {
+  local method="$1"
+  shift || true
+  OMARCHY_SHELL_IPC_TIMEOUT=1s omarchy-shell "$PLUGIN_ID" "$method" "$@" 2>/dev/null || true
+}
+
+backend() { python3 "$BACKEND_PY" --timeout 3 "$@"; }
+
+backend_available() {
+  local sock="${XDG_RUNTIME_DIR:-}/grabbar/${HYPRLAND_INSTANCE_SIGNATURE:-}/backend.sock"
+  [[ -S "$sock" ]]
+}
+
+usage() {
+  cat <<'USAGE'
+Usage: grabbar <command>
+
+  (no command)         Open the minimized windows drawer (Settings when Grabbar is off)
+  setup                Open Settings, which includes the setup check
+  settings             Open Settings
+  status [--json]      Health, compatibility and owned minimized-window metadata
+  windows              List windows known to the native backend (no titles by default)
+  restore TOKEN        Restore an owned window to the current workspace
+  restore TOKEN --original
+                       Restore it to its original workspace where available
+  restore-all          Recover every live window owned by Grabbar
+  doctor               Read-only diagnostic report; never an implicit repair
+  autoload status|enable|disable|retry
+                       Native autoload hook in ~/.config/hypr/hyprland.lua (see docs/AUTOLOAD.md);
+                       enable never loads anything itself
+  disable              Restore minimized windows, then turn Grabbar off (strip gone, Minimize refused)
+  enable               Turn Grabbar back on
+  uninstall            Restore windows, turn Grabbar off, remove the autoload hook and the
+                       shell plugin (asks omarchy to remove it)
+USAGE
+}
+
+status_json() {
+  local shell backend
+  shell="$(ipc status)"
+  backend=""
+  if backend_available; then backend="$(backend status 2>/dev/null || true)"; fi
+  python3 - "$shell" "$backend" <<'PY'
+import json, sys
+shell, backend = sys.argv[1], sys.argv[2]
+def load(s):
+    try: return json.loads(s) if s else None
+    except ValueError: return {"error": "unparseable"}
+out = {"schema": 1, "shell": load(shell), "backend": load(backend)}
+b = out["backend"] or {}
+s = out["shell"] or {}
+out["summary"] = {
+    "backendLoaded": bool(b),
+    "shellRunning": bool(s),
+    "minimizeEnabled": bool(b.get("minimizeEnabled")) if b else False,
+    "decorations": "suspended" if (not b or b.get("suspended")) else "active",
+    "minimized": int(b.get("owned", 0)) if b else 0,
+}
+print(json.dumps(out, indent=2, sort_keys=True))
+PY
+}
+
+need_shell() {
+  [[ -n "$(ipc ping)" ]] && return 0
+  echo "grabbar: the shell service is not running (enable it with: omarchy plugin enable $PLUGIN_ID)" >&2
+  exit 5
+}
+
+case "$ACTION" in
+  open|"")
+    need_shell
+    if ipc status | grep -q '"paused":true'; then ipc openSettings >/dev/null; else ipc openDrawer >/dev/null; fi ;;
+  setup|settings) need_shell; ipc openSettings >/dev/null ;;
+  status)
+    if [[ "${1:-}" == "--json" ]]; then status_json; else
+      status_json | python3 -c '
+import json,sys
+d=json.load(sys.stdin); s=d["summary"]; b=d.get("backend") or {}
+print("native backend  " + ("loaded (epoch %s)" % b.get("epoch") if s["backendLoaded"] else "not loaded"))
+print("shell service   " + ("running" if s["shellRunning"] else "not running"))
+print("controls        " + s["decorations"])
+print("minimize        " + ("enabled" if s["minimizeEnabled"] else "disabled"))
+print("minimized       " + str(s["minimized"]))'
+    fi ;;
+  windows)
+    backend_available || { echo "grabbar: native backend unavailable" >&2; exit 3; }
+    backend windows | python3 -c '
+import json,sys
+for l in sys.stdin:
+    w=json.loads(l)
+    if w.get("alive")!="1": continue
+    print("%-18s %-24s ws=%-6s %s%s" % (w["token"], w.get("class","")[:24], w.get("workspaceName",""), "minimized " if w.get("owned")=="1" else "", "floating" if w.get("floating")=="1" else "tiled"))' ;;
+  restore)
+    TOKEN="${1:-}"; [[ "$TOKEN" =~ ^g[0-9]+-[0-9]+$ ]] || { echo "grabbar: restore needs a window token (see: grabbar windows)" >&2; exit 2; }
+    ORIG=""; [[ "${2:-}" == "--original" ]] && ORIG="--original"
+    RESULT="$(ipc restore "$TOKEN" "${ORIG:+original}")"
+    if [[ -n "$RESULT" ]]; then
+      # Shell answers: restoring | busy | unknown | invalid
+      echo "$RESULT"
+      case "$RESULT" in restoring|busy) exit 0 ;; unknown) exit 4 ;; *) exit 2 ;; esac
+    fi
+    backend_available || { echo "grabbar: neither the shell service nor the native backend is available" >&2; exit 3; }
+    RESULT="$(backend restore "$TOKEN" $ORIG)"
+    echo "$RESULT"
+    case "$RESULT" in *'"status": "ok"'*) exit 0 ;; *'"status": "stale"'*) exit 4 ;; *) exit 7 ;; esac ;;
+  restore-all)
+    RESULT="$(ipc restoreAll)"
+    if [[ -n "$RESULT" ]]; then
+      # The shell answers with the number of restores it started.
+      echo "restoring $RESULT window(s)"; exit 0
+    fi
+    backend_available || { echo "grabbar: neither the shell service nor the native backend is available" >&2; exit 3; }
+    RESULT="$(backend restore-all)"
+    echo "$RESULT"; case "$RESULT" in *'"status": "ok"'*) exit 0 ;; *) exit 7 ;; esac ;;
+  doctor)
+    echo "Grabbar doctor (read-only)"
+    echo "hyprland        $(hyprctl version 2>/dev/null | head -1 | sed 's/Hyprland //')"
+    echo "instance        ${HYPRLAND_INSTANCE_SIGNATURE:-<unset>}"
+    if backend_available; then echo "backend socket  present"; backend status 2>/dev/null | python3 -c '
+import json,sys; b=json.load(sys.stdin)
+print("backend         %s protocol %s epoch %s" % (b["version"], b["protocol"], b["epoch"]))
+print("shell           %s" % ("connected" if b["shellConnected"] else "disconnected"))
+print("minimize        %s" % ("enabled" if b["minimizeEnabled"] else "disabled"))
+print("decorations     %s" % ("suspended" if b["suspended"] else "active"))
+print("tracked/owned   %s/%s" % (b["tracked"], b["owned"]))
+print("owned workspace %s" % ("present" if b["ownedWorkspace"] else "absent"))' || echo "backend         not answering"
+    else echo "backend socket  absent (native backend not loaded)"; fi
+    STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/grabbar"
+    python3 "$HERE/helpers/grabbar-journal" inspect --state-dir "$STATE_DIR" | python3 -c '
+import json,sys; j=json.load(sys.stdin); print("journal         %s (%s)" % (j["status"], j["path"]))'
+    HIDDEN=$(hyprctl -j clients 2>/dev/null | python3 -c '
+import json,sys
+try: d=json.load(sys.stdin)
+except Exception: d=[]
+print(sum(1 for c in d if c.get("workspace",{}).get("name")=="special:grabbar-minimized"))' 2>/dev/null || echo "?")
+    echo "hidden windows  $HIDDEN on special:grabbar-minimized (compositor view)"
+    for p in ~/.config/omarchy/plugins/*/manifest.json; do
+      [[ -f "$p" ]] || continue
+      id=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("id",""))' "$p" 2>/dev/null)
+      case "$id" in *window-controls*|*hyprbars*) echo "conflict        $id is installed (another decorator)";; esac
+    done
+    hyprctl plugins list 2>/dev/null | grep -qi hyprbars && echo "conflict        hyprbars is loaded natively"
+    python3 "$HERE/helpers/grabbar-autoload" status
+    exit 0 ;;
+  autoload)
+    SUB="${1:-status}"; shift || true
+    case "$SUB" in
+      status|enable|disable|retry) python3 "$HERE/helpers/grabbar-autoload" "$SUB" "$@" ;;
+      *) echo "grabbar: autoload takes status|enable|disable|retry" >&2; exit 2 ;;
+    esac ;;
+  disable)
+    need_shell; R="$(ipc disable)"; echo "grabbar: ${R:-no answer}"
+    case "$R" in paused) exit 0 ;; offline) echo "grabbar: native backend not loaded; setting saved" >&2; exit 3 ;; *) exit 7 ;; esac ;;
+  enable)
+    need_shell; R="$(ipc enable)"; echo "grabbar: ${R:-no answer}"
+    case "$R" in resumed) exit 0 ;; offline) echo "grabbar: native backend not loaded; setting saved" >&2; exit 3 ;; *) exit 7 ;; esac ;;
+  uninstall)
+    # Order matters: windows back first, then no more native loads, then the
+    # shell plugin. Native files in the removed checkout are inactive remnants
+    # until the next login; nothing here loads or unloads a shared object.
+    if [[ -n "$(ipc ping)" ]]; then
+      R="$(ipc disable)"; echo "grabbar: shell service disable -> ${R:-no answer}"
+      [[ "$R" == "paused" ]] || echo "grabbar: could not confirm that minimized windows were returned; check the drawer before continuing" >&2
+    fi
+    python3 "$HERE/helpers/grabbar-autoload" disable
+    if command -v omarchy >/dev/null 2>&1; then
+      omarchy plugin remove "$PLUGIN_ID"
+    else
+      echo "grabbar: remove the shell plugin with: omarchy plugin remove $PLUGIN_ID" >&2
+    fi
+    echo "grabbar: the native plugin stays loaded until the next login; state dir ${XDG_STATE_HOME:-$HOME/.local/state}/grabbar was left in place" ;;
+  help|-h|--help) usage ;;
+  *) usage; exit 2 ;;
+esac

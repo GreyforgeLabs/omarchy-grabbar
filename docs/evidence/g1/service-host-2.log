@@ -1,0 +1,2 @@
+ DEBUG qml: grabbar-test-host: service started, restoreHost=true
+ DEBUG qml: grabbar: reconcile {"reconstructed":[],"completed":[],"cancelled":[],"cleared":["g1789447122-1"],"removed":[],"recovered":[],"quarantined":false}

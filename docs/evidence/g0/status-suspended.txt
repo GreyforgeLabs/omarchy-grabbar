@@ -1,0 +1,10 @@
+Grabbar 0.0.1-g0 (protocol 1)
+epoch: 1789447046
+socket: /run/user/1000/grabbar/efb50993780079460b0cbed1363e2166a2de1d9f_1789445779_1872998507/backend.sock
+shell: disconnected
+minimize: disabled
+decorations: suspended
+tracked windows: 1
+minimized (owned): 0
+owned workspace: absent
+

@@ -1,0 +1,7 @@
+[32m  INFO[0m: Launching config: "/home/gfarch/Projects/omarchy-grabbar/docs/evidence/g1-live/host/shell.qml"
+[32m  INFO[0m: Shell ID: "83eabdeaeba6b16ad8db9ff2f1f4f33b" Path ID "83eabdeaeba6b16ad8db9ff2f1f4f33b"
+[32m  INFO[0m: Saving logs to "/run/user/1000/quickshell/by-id/hpc1h77elt/log.qslog"
+[34m DEBUG[97m qml[0m: grabbar-test-host: service started, restoreHost=true
+[32m  INFO[0m: Configuration Loaded
+[33m  WARN[97m qt.qpa.services[0m: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+[34m DEBUG[97m qml[0m: grabbar: reconcile {"reconstructed":[],"completed":[],"cancelled":[],"cleared":["g1789453554-1"],"removed":[],"recovered":[],"quarantined":false}

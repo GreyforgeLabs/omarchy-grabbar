@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "tech.greyforge.grabbar",
+  "name": "Grabbar",
+  "version": "0.0.1",
+  "author": "Greyforge Labs",
+  "license": "MIT",
+  "homepage": "https://github.com/GreyforgeLabs/omarchy-grabbar",
+  "description": "Familiar window controls for Omarchy: minimize, maximize, close, move and resize with the mouse, and a drawer that always brings a minimized window back.",
+  "kinds": [
+    "service",
+    "overlay",
+    "bar-widget"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml",
+    "overlay": "Panel.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Grabbar",
+    "description": "Minimized windows: a stable place to find them again. Click for the drawer.",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

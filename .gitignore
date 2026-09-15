@@ -1,0 +1,7 @@
+native/upstream/hyprbars/*.so
+native/grabbar/*.so
+native/build/
+__pycache__/
+*.o
+native/upstream/
+tests/integration/vpointer/vpointer

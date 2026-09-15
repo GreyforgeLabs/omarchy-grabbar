@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+"""Grabbar native autoload management (docs/AUTOLOAD.md).
+
+    grabbar-autoload status  [--state-dir DIR] [--hypr-config FILE] [--json]
+    grabbar-autoload enable  [--state-dir DIR] [--hypr-config FILE]
+    grabbar-autoload disable [--state-dir DIR] [--hypr-config FILE]
+    grabbar-autoload retry   [--state-dir DIR]
+    grabbar-autoload arm     [--state-dir DIR]        # create the 'enabled' marker only
+    grabbar-autoload disarm  [--state-dir DIR]        # remove it (config hook stays, declares nothing)
+
+`enable` writes one guarded line into the Hyprland Lua config (with a timestamped
+backup) and creates the 'enabled' marker. It never reloads the compositor: the
+operator decides when the plugin is first loaded (`hyprctl reload`, or the next
+login). `disable` removes the line and the marker. `retry` clears a recorded
+failed start so the next evaluation declares the plugin again.
+"""
+import argparse, json, os, re, sys, time
+
+BEGIN = "-- BEGIN tech.greyforge.grabbar autoload"
+END = "-- END tech.greyforge.grabbar autoload"
+HOOK = (
+    BEGIN + "\n"
+    "-- Managed by `grabbar autoload enable|disable`. Loads Grabbar's native window\n"
+    "-- controls through the plugin's own guarded loader (docs/AUTOLOAD.md).\n"
+    'pcall(dofile, (os.getenv("HOME") or "") .. "/.config/omarchy/plugins/tech.greyforge.grabbar/native/autoload.lua")\n'
+    + END + "\n"
+)
+
+
+def default_state_dir():
+    return os.path.join(os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state"), "grabbar")
+
+
+def default_hypr_config():
+    return os.path.expanduser("~/.config/hypr/hyprland.lua")
+
+
+def read_line(path):
+    try:
+        with open(path) as f:
+            return f.readline().strip()
+    except OSError:
+        return None
+
+
+def status(state_dir, hypr_config):
+    d = os.path.join(state_dir, "autoload")
+    hooked = False
+    try:
+        with open(hypr_config) as f:
+            hooked = BEGIN in f.read()
+    except OSError:
+        pass
+    last_attempt = read_line(os.path.join(d, "last-attempt"))
+    last_ok = read_line(os.path.join(d, "last-ok"))
+    skipped = read_line(os.path.join(d, "skipped"))
+    current = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE", "")
+    armed = os.path.exists(os.path.join(d, "enabled"))
+    if not hooked:
+        state = "not-installed"
+    elif not armed:
+        state = "disarmed"
+    elif last_attempt and last_attempt != current and last_attempt != last_ok:
+        state = "skipped-after-failed-start"
+    elif last_attempt == current and current:
+        state = "active-this-session" if last_ok == current else "active-this-session-unconfirmed"
+    else:
+        state = "armed"
+    return {
+        "schema": 1,
+        "state": state,
+        "hookInstalled": hooked,
+        "armed": armed,
+        "hyprConfig": hypr_config,
+        "stateDir": d,
+        "lastAttempt": last_attempt,
+        "lastOk": last_ok,
+        "skipped": skipped,
+        "currentInstance": current,
+    }
+
+
+def ensure_dir(d):
+    os.makedirs(d, mode=0o700, exist_ok=True)
+
+
+def arm(state_dir):
+    d = os.path.join(state_dir, "autoload")
+    ensure_dir(d)
+    with open(os.path.join(d, "enabled"), "w") as f:
+        f.write(str(int(time.time())) + "\n")
+
+
+def disarm(state_dir):
+    p = os.path.join(state_dir, "autoload", "enabled")
+    try:
+        os.unlink(p)
+    except FileNotFoundError:
+        pass
+
+
+def retry(state_dir):
+    d = os.path.join(state_dir, "autoload")
+    for name in ("last-attempt", "skipped"):
+        try:
+            os.unlink(os.path.join(d, name))
+        except FileNotFoundError:
+            pass
+
+
+def enable(state_dir, hypr_config):
+    try:
+        with open(hypr_config) as f:
+            text = f.read()
+    except FileNotFoundError:
+        sys.exit("grabbar-autoload: %s does not exist; Grabbar autoload needs Hyprland's Lua config" % hypr_config)
+    if BEGIN in text:
+        arm(state_dir)
+        return "already-installed"
+    backup = "%s.bak.%s" % (hypr_config, time.strftime("%Y%m%d-%H%M%S"))
+    with open(backup, "w") as f:
+        f.write(text)
+    if not text.endswith("\n"):
+        text += "\n"
+    text += "\n" + HOOK
+    tmp = hypr_config + ".grabbar.tmp"
+    with open(tmp, "w") as f:
+        f.write(text)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, hypr_config)
+    arm(state_dir)
+    return "installed (backup: %s)" % backup
+
+
+def disable(state_dir, hypr_config):
+    disarm(state_dir)
+    try:
+        with open(hypr_config) as f:
+            text = f.read()
+    except FileNotFoundError:
+        return "no config"
+    if BEGIN not in text:
+        return "not-installed"
+    new = re.sub(r"\n?" + re.escape(BEGIN) + r".*?" + re.escape(END) + r"\n", "", text, count=1, flags=re.S)
+    backup = "%s.bak.%s" % (hypr_config, time.strftime("%Y%m%d-%H%M%S"))
+    with open(backup, "w") as f:
+        f.write(text)
+    tmp = hypr_config + ".grabbar.tmp"
+    with open(tmp, "w") as f:
+        f.write(new)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, hypr_config)
+    return "removed (backup: %s)" % backup
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Grabbar native autoload")
+    ap.add_argument("command", choices=("status", "enable", "disable", "retry", "arm", "disarm"))
+    ap.add_argument("--state-dir", default=default_state_dir())
+    ap.add_argument("--hypr-config", default=default_hypr_config())
+    ap.add_argument("--json", action="store_true")
+    a = ap.parse_args()
+    if a.command == "status":
+        s = status(a.state_dir, a.hypr_config)
+        if a.json:
+            print(json.dumps(s, indent=2, sort_keys=True))
+        else:
+            print("autoload        %s" % s["state"])
+            if s["skipped"]:
+                print("skipped start   %s (clear with: grabbar autoload retry)" % s["skipped"])
+        return
+    if a.command == "enable":
+        print("autoload hook: %s" % enable(a.state_dir, a.hypr_config))
+        print("Nothing was loaded. The plugin loads at the next `hyprctl reload` or login.")
+    elif a.command == "disable":
+        print("autoload hook: %s" % disable(a.state_dir, a.hypr_config))
+    elif a.command == "retry":
+        retry(a.state_dir); print("cleared the recorded failed start")
+    elif a.command == "arm":
+        arm(a.state_dir); print("armed")
+    elif a.command == "disarm":
+        disarm(a.state_dir); print("disarmed")
+
+
+if __name__ == "__main__":
+    main()
