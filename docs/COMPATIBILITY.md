@@ -37,6 +37,31 @@ the same window, title drag detaching a tiled window, Close by button.
 | Nautilus (Files) | GTK 4, client-side decoration | its own header bar stays fully visible under the strip |
 | mpv | Wayland, `--force-window` | media app; Grabbar performs no audio/pause operation (F07 by construction) |
 
+## Other window tools (tested together in the sandboxed shell)
+
+Grabbar's hidden workspace is storage, never a view. Hyprland shows a
+special workspace whenever a window on it is focused, so any tool that
+focuses a hidden window would otherwise pop the whole hidden set onto the
+monitor. The backend listens for that (`window.active`,
+`workspace.specialActive`) and answers by restoring the focused window as if
+its drawer row had been clicked, then closing the workspace view
+(scenarios X01/X02).
+
+| Tool | Interaction | Result |
+| --- | --- | --- |
+| **Hotbar** (`greyforge.hotbar`) | Lists hidden windows in their app group; clicking/cycling to one calls `hl.dsp.focus` | The window is restored to the current workspace and focused; the drawer row clears; `special:grabbar-minimized` is not shown |
+| **Reprieve** (`tech.greyforge.reprieve`) | `Super+W` / `parkWindow` on a window with a Grabbar strip | Parked on `special:reprieve` and returned by Reprieve's undo; Grabbar does not interfere |
+| Reprieve | `parkWindow` aimed at a Grabbar-minimized window | Reprieve refuses windows on special workspaces (`passthrough`); nothing moves |
+| Any tool | Moves a Grabbar-minimized window somewhere else | Grabbar releases ownership (`released`) and drops the row; it never drags the window back |
+| Omarchy scratchpad (`Super+S`, `Super+Alt+S`) | `special:scratchpad` | Separate workspace; no interaction |
+| Keybind or tool toggling `special:grabbar-minimized` itself | `toggle_special` | Closed again at once; the window Hyprland focused meanwhile is restored |
+| Window switchers / overviews | Focus a hidden window | Same as Hotbar: restored, not revealed |
+| Hyprbars, `omarchy-window-controls` | Another decorator on the same windows | Not handled automatically; `grabbar doctor` reports them so you can disable one |
+
+A brief flash of the hidden workspace is possible on slow frames: Hyprland
+opens it inside the focus call and Grabbar closes it on the next event-loop
+turn.
+
 ## Known exclusions and open questions
 
 - **Modal families** are refused, not moved together: a window with an

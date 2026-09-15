@@ -106,5 +106,6 @@ function (Node tests run it directly):
 | Shell disconnects | Minimize refused at once; after `shell_grace_ms` owned windows return and strips suspend |
 | Shell reconnects in time | New snapshot, reconcile, resume |
 | Settings → Off | `pause`: windows return, strips off, Minimize refused; `resume` on On |
+| Another tool focuses a hidden window / opens Grabbar's workspace | Deferred one turn: the focused hidden window is restored to the monitor's workspace and focused; the special workspace view is closed |
 | `hyprctl plugin unload` | Owned windows return before native references drop; shell shows "backend not loaded" |
 | Compositor restart | Nothing survives (as with any compositor); the journal from the old session is quarantined, not replayed |

@@ -9,7 +9,7 @@
 == F08: 20 windows minimized through the shell, restored with Restore all
   PASS F08 20 windows hidden; shell model has 20 rows
   PASS F08 journal holds 20 entries
-  PASS F08 Restore all returned 20 windows in 169 ms, rows and journal cleared
+  PASS F08 Restore all returned 20 windows in 107 ms, rows and journal cleared
 
 == R05: journal cannot be written -> minimize refused, window stays visible
   PASS R05 window visible, no row, after a failed journal write
@@ -26,5 +26,11 @@
   PASS R15 fullscreen client occupies y=0 (no reserved strip)
   PASS R15 minimize refused while fullscreen
   PASS R15 strip reserved again after leaving fullscreen (y=81)
+
+== X01: another tool focuses a hidden window (Hotbar click, window switcher, focuswindow) -> restored, workspace never shown
+  PASS X01 focus by another tool restored the window to workspace 1, focused it, no special workspace shown, row cleared
+
+== X02: Grabbar's workspace toggled like a scratchpad -> closed again, focused window restored
+  PASS X02 toggle_special on Grabbar's workspace did not leave it on screen
 
 scenarios: 0 failure(s); evidence in <lab>/scenarios

@@ -49,6 +49,17 @@ Omarchy theme.
   <img src="docs/screenshots/settings.png" alt="Grabbar settings" width="58%">
 </p>
 
+## Alongside other tools
+
+Grabbar keeps its hidden windows on its own workspace and never shows it.
+When something else focuses a hidden window — a click in
+[Hotbar](https://github.com/GreyforgeLabs/omarchy-hotbar), a window
+switcher, `hyprctl dispatch focuswindow` — Grabbar restores that window
+properly instead of letting the whole hidden set pop up.
+[Reprieve](https://github.com/GreyforgeLabs/reprieve) keeps parking on its
+own workspace; the two do not touch each other's windows. Details and the
+tested matrix: `docs/COMPATIBILITY.md`.
+
 ## Status
 
 **0.1.0 preview** (spec milestone G3). The whole workflow — strip, menu,

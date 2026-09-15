@@ -24,6 +24,10 @@ build (Omarchy 4.0.x, Hyprland 0.56.2 `efb50993…`, Quickshell 0.3.1).
 - `pause`/`resume` for the Settings switch; restore-all walks a token
   snapshot; `restored` window events after any return path.
 - `plugin:grabbar:shell_grace_ms` (default 2000).
+- Other tools focusing a hidden window (Hotbar, window switchers,
+  `focuswindow`) or toggling `special:grabbar-minimized` no longer reveal
+  the hidden workspace: the focused window is restored like a drawer
+  click and the view is closed (scenarios X01/X02).
 - No `reloadConfig()` in `PLUGIN_INIT`; boot-guard marker after 15 s.
 
 ### Shell

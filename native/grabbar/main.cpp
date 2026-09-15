@@ -141,6 +141,12 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     static auto P7 = Event::bus()->m_events.window.pin.listen([&](PHLWINDOW w) { g_pBackend->onWindowChanged(w, "pin"); });
     static auto P8 = Event::bus()->m_events.window.moveToWorkspace.listen([&](PHLWINDOW w, PHLWORKSPACE) { g_pBackend->onWindowChanged(w, "workspace"); });
     static auto P9 = Event::bus()->m_events.config.reloaded.listen([&] { onConfigReloaded(); });
+    // Other tools focusing a hidden window or opening Grabbar's workspace (spec §8).
+    static auto P10 = Event::bus()->m_events.window.active.listen([&](PHLWINDOW w, Desktop::eFocusReason) { g_pBackend->onOwnedWindowActivated(w); });
+    static auto P11 = Event::bus()->m_events.workspace.specialActive.listen([&](PHLWORKSPACE ws, PHLMONITOR mon) {
+        if (ws && ws->m_name == GRABBAR_WORKSPACE)
+            g_pBackend->onOwnedWorkspaceRevealed(mon);
+    });
 
     static auto CMD = HyprlandAPI::registerHyprCtlCommand(PHANDLE, SHyprCtlCommand{.name = "grabbar", .exact = true, .fn = [](eHyprCtlOutputFormat fmt, std::string) {
                                                                                         return g_pBackend ? g_pBackend->statusText(fmt == FORMAT_JSON) : std::string("inactive");

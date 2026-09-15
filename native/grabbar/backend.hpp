@@ -102,6 +102,10 @@ class CGrabbarBackend {
     void                onWindowOpen(PHLWINDOW w);
     void                onWindowClose(PHLWINDOW w);
     void                onWindowChanged(PHLWINDOW w, const char* what);
+    // Another tool (a taskbar, a window switcher, `focuswindow`) focused a
+    // hidden window or opened Grabbar's workspace: treat it as a restore.
+    void                onOwnedWindowActivated(PHLWINDOW w);
+    void                onOwnedWorkspaceRevealed(PHLMONITOR mon);
 
     // called from the wayland event loop
     void                acceptClient();
@@ -123,6 +127,8 @@ class CGrabbarBackend {
     bool                                   m_stopping  = false;
     bool                                   m_paused    = false; // shell asked for Disable: no controls, no new minimize
     SP<CEventLoopTimer>                    m_graceTimer;
+    bool                                   m_revealPending = false;
+    void                                   handleReveal();
     std::unordered_map<std::string, STrackedWindow> m_windows; // token -> tracked
     std::unordered_map<uintptr_t, std::string>      m_tokenByWindow;
 

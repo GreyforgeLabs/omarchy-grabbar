@@ -785,6 +785,55 @@ void CGrabbarBackend::onWindowChanged(PHLWINDOW w, const char* what) {
     }
 }
 
+// ------------------------------------------- reveal by another tool (§8)
+
+// Grabbar's workspace is storage, never a view. Hyprland shows a special
+// workspace whenever a window on it is focused, so a taskbar click (Hotbar),
+// a window switcher, Reprieve's lists or a plain `focuswindow` on a hidden
+// window would pop the whole hidden set onto the monitor. Instead, the
+// focused hidden window is restored as if its drawer row had been clicked,
+// and the workspace view is closed again. Deferred to the next event-loop
+// turn: moving windows from inside a focus event is not safe.
+void CGrabbarBackend::onOwnedWindowActivated(PHLWINDOW w) {
+    if (!w || m_stopping || !onOwnedWorkspace(w))
+        return;
+    if (auto t = tracked(tokenFor(w)); t && t->transitioning)
+        return;
+    if (m_revealPending)
+        return;
+    m_revealPending = true;
+    g_pEventLoopManager->doLater([this] { handleReveal(); });
+}
+
+void CGrabbarBackend::onOwnedWorkspaceRevealed(PHLMONITOR mon) {
+    if (m_stopping || m_revealPending)
+        return;
+    m_revealPending = true;
+    g_pEventLoopManager->doLater([this] { handleReveal(); });
+}
+
+void CGrabbarBackend::handleReveal() {
+    m_revealPending = false;
+    if (m_stopping)
+        return;
+
+    // 1. The window the other tool wanted: bring it back properly.
+    if (auto w = Desktop::focusState()->window(); w && onOwnedWorkspace(w)) {
+        std::string err;
+        const auto  TOKEN = tokenFor(w);
+        auto        mon   = w->m_monitor.lock();
+        const auto  ST    = restore(TOKEN, "current", mon ? mon->m_name : "", true, err);
+        Log::logger->log(Log::INFO, "[grabbar] hidden window focused by another tool; restored {} -> {} ({})", TOKEN, statusName(ST), err);
+    }
+
+    // 2. Never leave the hidden workspace on screen.
+    for (auto& m : State::monitorState()->monitors()) {
+        const auto SPECIAL = m->m_activeSpecialWorkspace;
+        if (SPECIAL && SPECIAL->m_name == GRABBAR_WORKSPACE)
+            m->setSpecialWorkspace(nullptr);
+    }
+}
+
 // --------------------------------------------------------------- protocol
 
 Fields CGrabbarBackend::windowFields(const STrackedWindow& t) const {

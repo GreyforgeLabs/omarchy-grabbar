@@ -4,7 +4,8 @@
 # (docs/QUALIFICATION.md "Sandboxed shell"). Covers F02 (press on A, focus
 # moves to B, release on A), F05 (external maximize toggle), F08 (many
 # windows, restore all), R05 (journal write failure), R09 (origin monitor
-# removed), R10 (pinned floating window), R15 (fullscreen window).
+# removed), R10 (pinned floating window), R15 (fullscreen window), X01/X02
+# (another tool focusing a hidden window or opening Grabbar's workspace).
 #
 #   SIG=… NESTED_DISPLAY=wayland-N STATE_DIR=<shell's grabbar state dir> tests/integration/scenarios-nested.sh
 set -u
@@ -43,7 +44,7 @@ shell_minimized() { sipc status | python3 -c 'import json,sys; print(json.load(s
 sipc ping | grep -q connected || { echo "refusing: no shell service connected on $NESTED_DISPLAY"; exit 2; }
 
 say "F02: press Minimize on A, focus moves to B before release, release on A -> only A minimizes"
-spawn foot; wait_count 1; spawn foot; wait_count 2; sleep 1.5
+spawn foot; wait_count 1; spawn foot; wait_count 2; sleep 2.5
 A=$(addr_list | head -1); B=$(addr_list | tail -1)
 geom "$A"; vp move "$MIN_X" "$STRIP_Y" sleep 150 down sleep 100
 hc dispatch "hl.dsp.focus({ window = 'address:$B' })" >/dev/null; sleep 0.3
@@ -54,7 +55,7 @@ sipc restoreAll >/dev/null; sleep 1.5
 close_all
 
 say "F05: external maximize toggle is reflected by the backend"
-spawn foot; wait_count 1; sleep 1.2; A=$(addr_list)
+spawn foot; wait_count 1; sleep 2; A=$(addr_list)
 hc dispatch "hl.dsp.window.fullscreen_state({ internal = 1, client = 1, action = 'set', window = 'address:$A' })" >/dev/null; sleep 0.8
 [[ "$(gb "$A" maximized)" == "1" ]] && pass "F05 backend reports maximized after an external maximize" || fail "F05 backend maximized=$(gb "$A" maximized) fs=$(wf "$A" '["fullscreen"]')"
 shot "f05-external-maximized"
@@ -127,6 +128,22 @@ sipc minimize "$T" >/dev/null; sleep 1.2
 [[ "$(wf "$A" '["workspace"]["name"]')" != "special:grabbar-minimized" ]] && pass "R15 minimize refused while fullscreen" || fail "R15 fullscreen window was minimized"
 hc dispatch "hl.dsp.window.fullscreen_state({ internal = 0, client = 0, action = 'set', window = 'address:$A' })" >/dev/null; sleep 1
 [[ "$(wf "$A" '["at"][1]')" -ge $((BAR_TOP + 44)) ]] && pass "R15 strip reserved again after leaving fullscreen (y=$(wf "$A" '["at"][1]'))" || fail "R15 y=$(wf "$A" '["at"][1]') after fullscreen"
+close_all
+
+say "X01: another tool focuses a hidden window (Hotbar click, window switcher, focuswindow) -> restored, workspace never shown"
+spawn foot; wait_count 1; spawn foot; wait_count 2; sleep 2.5
+A=$(addr_list | head -1); T=$(tok "$A")
+sipc minimize "$T" >/dev/null; sleep 1.5
+[[ "$(wf "$A" '["workspace"]["name"]')" == "special:grabbar-minimized" ]] || fail "X01 minimize failed"
+hc dispatch "hl.dsp.focus({ window = 'address:$A' })" >/dev/null; sleep 1.2
+SPECIAL=$(hc -j monitors | python3 -c 'import json,sys; print(json.load(sys.stdin)[0]["specialWorkspace"]["name"])')
+FOC=$(hc -j activewindow | python3 -c 'import json,sys; print(json.load(sys.stdin)["address"])')
+if [[ "$(wf "$A" '["workspace"]["name"]')" == "1" && "$SPECIAL" == "" && "$FOC" == "$A" && "$(shell_minimized)" == 0 ]]; then pass "X01 focus by another tool restored the window to workspace 1, focused it, no special workspace shown, row cleared"; else fail "X01 ws=$(wf "$A" '["workspace"]["name"]') special='$SPECIAL' focused=$FOC rows=$(shell_minimized)"; fi
+say "X02: Grabbar's workspace toggled like a scratchpad -> closed again, focused window restored"
+sipc minimize "$T" >/dev/null; sleep 1.5
+hc dispatch "hl.dsp.workspace.toggle_special('grabbar-minimized')" >/dev/null; sleep 1.2
+SPECIAL=$(hc -j monitors | python3 -c 'import json,sys; print(json.load(sys.stdin)[0]["specialWorkspace"]["name"])')
+[[ "$SPECIAL" == "" && "$(wf "$A" '["workspace"]["name"]')" == "1" ]] && pass "X02 toggle_special on Grabbar's workspace did not leave it on screen" || fail "X02 special='$SPECIAL' ws=$(wf "$A" '["workspace"]["name"]')"
 close_all
 
 echo; echo "scenarios: $FAILED failure(s); evidence in $OUT"
