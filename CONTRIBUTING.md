@@ -11,6 +11,22 @@ work on:
    loaded.** Read `docs/AUTOLOAD.md` before touching `native/autoload.lua`
    or `helpers/grabbar-autoload`.
 
+## Agent and automation guardrails
+
+These rules keep the 2026-09-15 startup failure fixed. They live here in
+`CONTRIBUTING.md` (not in a root-level agent-instruction file) because the
+marketplace installs the repository contents as the plugin checkout, and
+root-level agent files can be auto-interpreted as trusted instructions.
+
+- Read `docs/AUTOLOAD.md` and `SYSTEM-BREAKING-BUG.md` before touching
+  anything that loads the native plugin.
+- The installed copy under `~/.config/omarchy/plugins/tech.greyforge.grabbar`
+  is the operator's live plugin. Syncing it is the operator's call.
+- Never `cat >` over a loaded `.so`; building writes a new inode, which is
+  safe while an old copy is mapped.
+- Do not `pkill -f <pattern>` from an agent shell (it matches the agent's own
+  command line); kill by PID.
+
 ## Layout
 
 See the table in `README.md` and `docs/ARCHITECTURE.md`. Pure logic lives in
