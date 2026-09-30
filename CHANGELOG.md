@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: Minimize stayed disabled ("Grabbar needs its bar widget") when the
+  active bar is a replacement bar plugin. Omarchy 4 gives third-party widgets
+  under such a bar a shell facade without service lookup, so the widget never
+  registered as a restore host. The service now also counts its own entry in
+  the bar layout of `shell.json` as a restore host.
+
 ## 0.1.1 — 2026-09-15 (public preview)
 
 - Keep native controls off when the compositor identity is missing or the

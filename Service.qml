@@ -228,6 +228,19 @@ Item {
     root.sendReady()
   }
 
+  // Under a replacement bar plugin, Omarchy gives third-party widgets a
+  // bar-entry shell facade whose serviceFor() returns null, so the widget is
+  // on screen but never reaches this service to register. The widget's entry
+  // in the bar layout stands in for it as a restore host; under the default
+  // bar the widget registers as well and the two agree.
+  onBarEntryPresentChanged: root.syncBarEntryHost()
+
+  function syncBarEntryHost() {
+    var registered = !!root.restoreHosts["bar-entry"]
+    if (root.barEntryPresent && !registered) root.registerRestoreHost("bar-entry")
+    else if (!root.barEntryPresent && registered) root.unregisterRestoreHost("bar-entry")
+  }
+
   function onConnected() {
     root.backendConnected = true
     root.busy = false
@@ -488,6 +501,7 @@ Item {
   property var fileSettings: null
   property var mirrorSettings: null
   property var settingsWriter: null   // function(patch) -> bool, registered by the bar widget
+  property bool barEntryPresent: false  // this plugin's widget is in the bar layout
   readonly property var settings: Model.normalizeSettings(fileSettings || mirrorSettings || {})
 
   FileView {
@@ -495,8 +509,15 @@ Item {
     path: root.home + "/.config/omarchy/shell.json"
     watchChanges: true
     printErrors: false
-    onLoaded: root.fileSettings = Model.readOwnEntry(text(), root.pluginId)
-    onLoadFailed: root.fileSettings = null
+    onLoaded: {
+      var raw = text()
+      root.fileSettings = Model.readOwnEntry(raw, root.pluginId)
+      root.barEntryPresent = Model.hasBarEntry(raw, root.pluginId)
+    }
+    onLoadFailed: {
+      root.fileSettings = null
+      root.barEntryPresent = false
+    }
     onFileChanged: reload()
   }
 

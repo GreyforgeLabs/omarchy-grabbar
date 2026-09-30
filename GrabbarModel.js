@@ -514,6 +514,26 @@ function readOwnEntry(raw, pluginId) {
   return null
 }
 
+// True when this plugin's widget sits in the bar layout of a shell.json
+// document, whether the entry is an object or a bare id string.
+function hasBarEntry(raw, pluginId) {
+  var parsed
+  try { parsed = JSON.parse(String(raw || "")) } catch (e) { return false }
+  if (!parsed || typeof parsed !== "object") return false
+  var layout = parsed.bar && parsed.bar.layout ? parsed.bar.layout : null
+  if (!layout) return false
+  var sections = ["left", "center", "right"]
+  for (var s = 0; s < sections.length; s++) {
+    var list = Array.isArray(layout[sections[s]]) ? layout[sections[s]] : []
+    for (var i = 0; i < list.length; i++) {
+      var entry = list[i]
+      var id = entry && typeof entry === "object" ? entry.id : entry
+      if (String(id || "") === String(pluginId)) return true
+    }
+  }
+  return false
+}
+
 function statusSummary(state) {
   var minimized = 0, prepared = 0, failed = 0, recovered = 0
   var list = state.entries || []
@@ -538,6 +558,7 @@ if (typeof module !== "undefined" && module.exports) {
     finishRestore: finishRestore, updateTitle: updateTitle, removeDead: removeDead,
     toJournal: toJournal, parseJournal: parseJournal, reconcile: reconcile,
     restoreDestination: restoreDestination, clampBox: clampBox, originLabel: originLabel, rowsWithOrdinals: rowsWithOrdinals,
-    statusSummary: statusSummary, normalizeSettings: normalizeSettings, readOwnEntry: readOwnEntry
+    statusSummary: statusSummary, normalizeSettings: normalizeSettings, readOwnEntry: readOwnEntry,
+    hasBarEntry: hasBarEntry
   }
 }

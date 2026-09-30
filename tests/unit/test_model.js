@@ -237,6 +237,16 @@ test("normalizeSettings validates and bounds; readOwnEntry finds the plugin entr
   assert.strictEqual(M.readOwnEntry("{bad", "x"), null)
 })
 
+test("hasBarEntry finds the widget in any bar section, as an object or a bare id", () => {
+  const id = "tech.greyforge.grabbar"
+  assert.strictEqual(M.hasBarEntry(JSON.stringify({ bar: { layout: { right: [{ id: "x" }, { id }] } } }), id), true)
+  assert.strictEqual(M.hasBarEntry(JSON.stringify({ bar: { layout: { center: ["x", id] } } }), id), true)
+  assert.strictEqual(M.hasBarEntry(JSON.stringify({ bar: { layout: { left: [{ id: "x" }], right: [] } } }), id), false)
+  assert.strictEqual(M.hasBarEntry(JSON.stringify({ bar: { id: "some.bar" } }), id), false)
+  assert.strictEqual(M.hasBarEntry(JSON.stringify({ bar: { layout: { right: [null, 42, {}] } } }), id), false)
+  assert.strictEqual(M.hasBarEntry("{bad", id), false)
+})
+
 test("updateTitle refreshes a row in place without reordering", () => {
   let s = M.prepareEntry(M.createState(), win({ token: "g100-1", title: "A" }), "n1-1", 1).state
   s = M.prepareEntry(s, win({ token: "g100-2", title: "B" }), "n1-2", 2).state
