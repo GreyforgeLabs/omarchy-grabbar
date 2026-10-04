@@ -17,6 +17,7 @@ HOST_QML="$HOST/shell.qml"
 mkdir -p "$STATE" "$HOST/helpers"
 # Quickshell only loads QML from inside its config folder: stage a copy.
 cp "$ROOT/Service.qml" "$ROOT/GrabbarModel.js" "$HOST/"
+cp -r "$ROOT/lifecycle" "$HOST/"
 cp "$ROOT/helpers/grabbar-journal" "$HOST/helpers/"
 cp "$ROOT/tests/integration/service-host.qml" "$HOST_QML"
 

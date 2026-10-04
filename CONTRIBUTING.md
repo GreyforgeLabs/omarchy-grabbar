@@ -46,6 +46,11 @@ mapped keeps running. Load the new file into the nested session with
 ## Tests
 
 - `tests/run.sh` must pass before every commit (it is what CI runs).
+- Restore-widget lifecycle changes also require `bash tests/qml/run.sh` (Qt 6
+  QtTest and Quickshell). Set `QMLTESTRUNNER` if Qt 6 is installed elsewhere.
+  This runs real QML lifetime tests and the actual service/widget with stub UI
+  styling and a recording transport in an isolated temporary home. It does not
+  load a native plugin or substitute for nested compositor qualification.
 - Native or shell behaviour changes need the relevant nested suite
   (`g0-nested.sh`, `g1-service-nested.sh`, `apps-nested.sh`,
   `scenarios-nested.sh`); record the run in `docs/QUALIFICATION.md` with the

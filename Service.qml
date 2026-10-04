@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import "GrabbarModel.js" as Model
+import "lifecycle" as Lifecycle
 
 // Grabbar shell service: the only writer of the recovery journal, the
 // backend's shell client, and the restore model behind the bar widget and
@@ -54,7 +55,8 @@ Item {
   property bool paused: false         // Disable Grabbar was chosen
   property bool snapshotDone: false
   property var restoreHosts: ({})
-  readonly property bool restoreHost: Object.keys(restoreHosts).length > 0
+  readonly property bool restoreHost: Lifecycle.Hosts.count > 0 || Object.keys(restoreHosts).length > 0
+  onRestoreHostChanged: root.sendReady()
 
   // ----------------------------------------------------------- journal
   property string journalStatus: "loading"

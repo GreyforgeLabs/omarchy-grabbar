@@ -47,8 +47,10 @@ Encoders/decoders that must agree: `native/grabbar/backend.cpp`
 ```
 
 Only one client may be the shell; a second gets `error reason=busy`. The
-shell declares `restoreAccess=1` once a bar widget is mounted; without it the
-strip is drawn but Minimize is refused. When the shell disconnects the
+shell declares `restoreAccess=1` once a visible bar widget is mounted; a
+configured layout entry alone does not qualify. Hiding or destroying the last
+widget sends `restoreAccess=0`. Without restore access the strip is drawn but
+Minimize is refused. When the shell disconnects the
 backend refuses new minimizes at once and starts the grace timer
 (`plugin:grabbar:shell_grace_ms`, default 2000). If no shell returns in
 time, every owned window is returned to a visible workspace and the strips
