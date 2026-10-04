@@ -81,11 +81,13 @@ function (Node tests run it directly):
 ## Shell UI
 
 - `BarWidget.qml` — the restore entry point. Its presence is what lets
-  the service declare `restoreAccess=1`: the widget registers itself when
-  it can reach the service, and the service also counts its own entry in
-  the bar layout, because replacement bars give third-party widgets a
-  shell facade without service lookup. It also pushes the theme colours
-  and registers the settings writer (both need the service lookup).
+  the service declare `restoreAccess=1`. Each visible widget registers its
+  lifetime in `lifecycle/Hosts.qml`, a plugin-local singleton shared with the
+  service. This works under replacement bars without exposing the service
+  through their shell facade. Registration is idempotent per instance;
+  hiding or destroying a widget removes it. A configured layout entry alone
+  grants no restore access. Service replacement observes existing widgets.
+  Theme colours and the settings writer still require service lookup.
 - `Panel.qml` — one overlay with three views (`open(payloadJson)`
   selects): the drawer, the window menu (positioned at the pointer on the
   right screen), and settings. Keyboard: arrows/j/k, Enter (Shift+Enter =

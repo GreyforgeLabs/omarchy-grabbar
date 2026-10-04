@@ -5,7 +5,7 @@ import Quickshell
 // process pointed at the nested compositor, so the shell service can be
 // exercised against the native backend without loading anything into the
 // operator's live omarchy-shell. The harness copies this file next to
-// Service.qml, GrabbarModel.js and helpers/ (Quickshell refuses module
+// Service.qml, GrabbarModel.js, lifecycle/ and helpers/ (Quickshell refuses module
 // paths outside its config folder). A bar widget is simulated by
 // registering a restore host at startup.
 ShellRoot {

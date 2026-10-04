@@ -3,6 +3,56 @@
 Evidence for the release gates in spec §15. Everything here was measured on
 the host below; nothing is a claim for other machines or versions.
 
+## Replacement-bar lifecycle correction — 2026-10-04
+
+Based on PR #1 head `4365600e86aa7c5c94f34532d2b2a1c1ad2d15ee`.
+The correction uses plugin-local QML widget lifetimes instead of persisted
+layout entries to establish restore access. The native backend source was unchanged. The rebuilt plugin was loaded only
+into a disposable compositor; the installed desktop plugin was untouched.
+
+- `tests/run.sh`: passed (23 model cases, journal, autoload, loader,
+  startup selection, protocol and syntax checks).
+- `bash tests/qml/run.sh`: passed with Qt 6.11.2. Six lifecycle cases plus
+  setup/cleanup passed: mount/unmount, absence, hidden widgets, multiple
+  instances/idempotence, late service creation, and observer replacement.
+- The same runner loads the actual `Service.qml` and `BarWidget.qml` in an
+  offscreen Quickshell process with an isolated home/runtime, stub UI styling,
+  and a recording socket. With and without service lookup, the service emits
+  `restoreAccess` values `0,1,0,1,0` across mount, hide, show and destruction.
+  A Grabbar layout entry remains saved throughout. The original PR components
+  fail this regression by reporting access before any widget is mounted.
+
+The native `g1-service-nested.sh` suite also passed all five scenarios on
+Hyprland 0.56.2 (`efb50993780079460b0cbed1363e2166a2de1d9f`): handshake,
+journal-before-commit minimize, restore, service-death grace recovery, and
+stale-journal reconciliation. Native library SHA-256:
+`314f277574fb275a20a9ae183ae8c75fbb0b6fb6feafcb0fca58be800efdc749`.
+
+The actual Omarchy shell was then run in an isolated home and runtime. The
+built-in bar and a third-party clone of the bundled bar both mounted the real
+widget, enabled native minimize, rendered the drawer, and restored the test
+window to its original workspace. The replacement-bar test started the shell
+with that bar selected. Selecting an empty replacement bar while retaining the
+saved Grabbar layout entry disabled native minimize; reselecting the rendering
+replacement restored access. Screenshots and compositor state were inspected.
+
+The test rig used a headless Cage 0.3.1 parent with wlroots 0.20.2. Its xdg-shell
+advertisement was raised from 5 to the library-supported version 6 for this
+Hyprland build. A parent virtual pointer initialized the nested output; the
+rendered shell checks used a headless output inside the disposable Hyprland.
+No parent output, native plugin, or shell configuration on the operator's live
+session was changed. Expected isolated audio/session-bus unavailability does
+not qualify media features or hardware login.
+
+One host limitation remains: switching from the built-in bar to a previously
+inactive clone in this session sometimes produced zero-sized, unmounted widgets
+for both Grabbar and Reprieve. Grabbar correctly left minimize disabled in that
+state. A shell started with the clone selected rendered correctly. This change
+does not claim to repair the host's dynamic bar-switching behavior.
+
+The standalone service harness stages `lifecycle/`. Qt singleton module
+conventions: <https://doc.qt.io/qt-6/qml-singleton.html>.
+
 ## 0.1.0 preview — 2026-09-15 (G1 + G2 + G3 evidence)
 
 ### Host and rig
@@ -196,4 +246,3 @@ the root cause are in `docs/AUTOLOAD.md`; the incident record is
 Not covered here: a real UWSM/systemd login on the operator's GPU with the
 Omarchy bootstrap config. That is the controlled host trial and needs the
 operator's explicit go-ahead.
-

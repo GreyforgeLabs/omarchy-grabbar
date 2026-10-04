@@ -5,8 +5,9 @@
 - Fixed: Minimize stayed disabled ("Grabbar needs its bar widget") when the
   active bar is a replacement bar plugin. Omarchy 4 gives third-party widgets
   under such a bar a shell facade without service lookup, so the widget never
-  registered as a restore host. The service now also counts its own entry in
-  the bar layout of `shell.json` as a restore host.
+  registered as a restore host. Widgets now report their lifetime through a
+  plugin-local QML registry, independent of service lookup. Removing or hiding
+  the last widget disables Minimize even if its layout entry remains configured.
 
 ## 0.1.1 — 2026-09-15 (public preview)
 

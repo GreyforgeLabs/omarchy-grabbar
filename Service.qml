@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import "GrabbarModel.js" as Model
+import "lifecycle" as Lifecycle
 
 // Grabbar shell service: the only writer of the recovery journal, the
 // backend's shell client, and the restore model behind the bar widget and
@@ -54,7 +55,8 @@ Item {
   property bool paused: false         // Disable Grabbar was chosen
   property bool snapshotDone: false
   property var restoreHosts: ({})
-  readonly property bool restoreHost: Object.keys(restoreHosts).length > 0
+  readonly property bool restoreHost: Lifecycle.Hosts.count > 0 || Object.keys(restoreHosts).length > 0
+  onRestoreHostChanged: root.sendReady()
 
   // ----------------------------------------------------------- journal
   property string journalStatus: "loading"
@@ -226,19 +228,6 @@ Item {
     else delete next[key]
     root.restoreHosts = next
     root.sendReady()
-  }
-
-  // Under a replacement bar plugin, Omarchy gives third-party widgets a
-  // bar-entry shell facade whose serviceFor() returns null, so the widget is
-  // on screen but never reaches this service to register. The widget's entry
-  // in the bar layout stands in for it as a restore host; under the default
-  // bar the widget registers as well and the two agree.
-  onBarEntryPresentChanged: root.syncBarEntryHost()
-
-  function syncBarEntryHost() {
-    var registered = !!root.restoreHosts["bar-entry"]
-    if (root.barEntryPresent && !registered) root.registerRestoreHost("bar-entry")
-    else if (!root.barEntryPresent && registered) root.unregisterRestoreHost("bar-entry")
   }
 
   function onConnected() {
@@ -501,7 +490,6 @@ Item {
   property var fileSettings: null
   property var mirrorSettings: null
   property var settingsWriter: null   // function(patch) -> bool, registered by the bar widget
-  property bool barEntryPresent: false  // this plugin's widget is in the bar layout
   readonly property var settings: Model.normalizeSettings(fileSettings || mirrorSettings || {})
 
   FileView {
@@ -509,15 +497,8 @@ Item {
     path: root.home + "/.config/omarchy/shell.json"
     watchChanges: true
     printErrors: false
-    onLoaded: {
-      var raw = text()
-      root.fileSettings = Model.readOwnEntry(raw, root.pluginId)
-      root.barEntryPresent = Model.hasBarEntry(raw, root.pluginId)
-    }
-    onLoadFailed: {
-      root.fileSettings = null
-      root.barEntryPresent = false
-    }
+    onLoaded: root.fileSettings = Model.readOwnEntry(text(), root.pluginId)
+    onLoadFailed: root.fileSettings = null
     onFileChanged: reload()
   }
 

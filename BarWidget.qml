@@ -4,6 +4,7 @@ import Quickshell.Widgets
 import qs.Commons
 import qs.Ui
 import "GrabbarModel.js" as Model
+import "lifecycle" as Lifecycle
 
 // Grabbar bar widget: the stable place a minimized window can be found again.
 //
@@ -49,20 +50,20 @@ BarWidget {
 
   // ------------------------------------------------------ service wiring
 
+  Lifecycle.RestoreHost { active: root.visible }
+
   // The service may be published after this widget mounts (plugin reloads,
-  // shell start order), so register whenever it becomes available, not only
-  // once at creation. Registration is idempotent on the service side.
-  function declareRestoreHost() {
+  // shell start order), so publish settings and theme whenever it becomes
+  // available. Restore presence is tracked independently by RestoreHost.
+  function bindService() {
     if (!service) return
-    if (service.registerRestoreHost) service.registerRestoreHost("bar-widget")
     if ("settingsWriter" in service) service.settingsWriter = root.writeSettings
     root.pushTheme()
   }
-  Component.onCompleted: declareRestoreHost()
-  onServiceChanged: declareRestoreHost()
+  Component.onCompleted: bindService()
+  onServiceChanged: bindService()
   Component.onDestruction: {
     if (!service) return
-    if (service.unregisterRestoreHost) service.unregisterRestoreHost("bar-widget")
     if ("settingsWriter" in service && service.settingsWriter === root.writeSettings) service.settingsWriter = null
   }
 
