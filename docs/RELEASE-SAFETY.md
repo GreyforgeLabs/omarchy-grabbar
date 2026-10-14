@@ -52,17 +52,36 @@ Full clean-install and UWSM/systemd login qualification remains pending;
 this is a preview release. Historical broader UI tests are in
 `QUALIFICATION.md`.
 
-## 0.1.2 source changes (not yet nested-qualified)
+## 0.1.2 nested qualification — 2026-10-14
 
 0.1.2 changes native source (`protocol.hpp` codec/layout split, strip hover
 fast path, glyph cache key, restore-all of unrecorded hidden windows, drag
 cleanup at the start of `PLUGIN_EXIT`, never from the strip destructor).
-`native/autoload.lua` is unchanged (SHA-256 `eaa6586d…9496f39`). Verified
-offline: clean `g++` build with no warnings, `tests/run.sh` (including the native codec/layout suite under
+`native/autoload.lua` is unchanged. Offline: clean `g++` build with no
+warnings, `tests/run.sh` (including the native codec/layout suite under
 ASan/UBSan and the startup-safety source guards) and `tests/qml/run.sh`.
-Before publishing 0.1.2, rebuild from the release source and pass
-`startup-nested.sh all` and `scenarios-nested.sh` against that binary, as for
-0.1.1.
+
+The native plugin was rebuilt from the 0.1.2 release source with
+`make -B -C native/grabbar CXX=g++` and tested in an isolated nested
+Hyprland on a temporary headless output, with a sandboxed `omarchy-shell`
+(isolated `HOME`, Hotbar, Reprieve and CRIS enabled alongside Grabbar):
+
+- `startup-nested.sh all`: exit 0, all 19 assertions pass. The host
+  compositor stayed up with no plugins loaded.
+- `scenarios-nested.sh`: exit 0, 16 of 16 pass (F02, F05, F08 with 20
+  windows restored in 241 ms, R05, R09, R10, R15, X01, X02).
+- Unload during a drag: the drag ends in `PLUGIN_EXIT` (log: `drag ended`,
+  then `returned 1 hidden window(s): unload`); later pointer motion and
+  release leave the window where it was, and the compositor stays up.
+- A window placed on `special:grabbar-minimized` with no minimize record
+  shows as Recovered after load and is returned on unload.
+- The shell service reconnects after every load.
+
+- Hyprland 0.56.2, commit `efb50993780079460b0cbed1363e2166a2de1d9f`.
+- Lua loader SHA-256: `eaa6586d69f5cc56c18924a06a1acff91462a5b7afced6889661281ac9496f39`.
+- Tested native binary SHA-256: `debcd8049f62832e3dedcfb59c2534dac3134b5f17f43170277cf1b0d5646510`.
+- [Startup output](evidence/startup/release-0.1.2-startup.log),
+  [scenarios output](evidence/0.1.2/scenarios.log).
 
 ## Stable-release gate
 
