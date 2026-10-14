@@ -13,12 +13,12 @@
 #include <hyprland/src/config/values/types/StringValue.hpp>
 #include <hyprland/src/config/values/types/ColorValue.hpp>
 
-#include <map>
+#include <unordered_map>
 #include <optional>
 #include <string>
 #include <vector>
 
-#define GRABBAR_VERSION       "0.1.1"
+#define GRABBAR_VERSION       "0.1.2"
 #define GRABBAR_PROTOCOL      1
 #define GRABBAR_WORKSPACE     "special:grabbar-minimized"
 #define GRABBAR_GRACE_MS      2000
@@ -55,8 +55,9 @@ struct SGlobalState {
         std::vector<std::string> excludedClasses; // exact window class matches, from Settings
     } shell;
 
-    // glyph textures shared by every bar, keyed by glyph + scaled size + color
-    std::map<std::string, SP<Render::ITexture>> glyphCache;
+    // glyph textures shared by every bar, keyed by grabbar::glyphKey(glyph,
+    // maximized, scaled size, color)
+    std::unordered_map<uint64_t, SP<Render::ITexture>> glyphCache;
 };
 
 inline UP<SGlobalState>     g_pGlobalState;

@@ -8,6 +8,7 @@
 // to the same live window produces ACTION_STALE.
 
 #include "globals.hpp"
+#include "protocol.hpp"
 
 #include <hyprland/src/desktop/view/Window.hpp>
 #include <hyprland/src/helpers/math/Math.hpp>
@@ -50,8 +51,6 @@ struct STrackedWindow {
     bool          transitioning = false; // Grabbar itself is moving it right now
     SWindowOrigin origin;
 };
-
-using Fields = std::vector<std::pair<std::string, std::string>>;
 
 struct SGrabbarClient {
     int              fd     = -1;
@@ -154,7 +153,3 @@ class CGrabbarBackend {
     void                                   applySettings(const Fields& f);
     void                                   refreshBars();
 };
-
-// protocol helpers (also used by tests)
-std::string grabbarEncode(const std::string& v);
-std::string grabbarDecode(const std::string& v);

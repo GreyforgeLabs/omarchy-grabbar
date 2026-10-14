@@ -109,8 +109,8 @@ function (Node tests run it directly):
 | Native plugin loads | Socket created, strips attached but suspended, boot-guard timer armed |
 | Shell connects + `ready` | Snapshot, reconcile against journal, strips active, theme/settings pushed |
 | Shell disconnects | Minimize refused at once; after `shell_grace_ms` owned windows return and strips suspend |
-| Shell reconnects in time | New snapshot, reconcile, resume |
+| Shell reconnects in time | New snapshot, reconcile against the in-memory rows (the journal file is read once at start), resume |
 | Settings → Off | `pause`: windows return, strips off, Minimize refused; `resume` on On |
 | Another tool focuses a hidden window / opens Grabbar's workspace | Deferred one turn: the focused hidden window is restored to the monitor's workspace and focused; the special workspace view is closed |
-| `hyprctl plugin unload` | Owned windows return before native references drop; shell shows "backend not loaded" |
+| `hyprctl plugin unload` | Owned windows (and unrecorded ones on Grabbar's workspace) return before native references drop; shell shows "backend not loaded" |
 | Compositor restart | Nothing survives (as with any compositor); the journal from the old session is quarantined, not replayed |

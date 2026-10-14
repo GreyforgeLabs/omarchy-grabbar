@@ -11,6 +11,7 @@ LUA = shutil.which('lua') or shutil.which('lua5.4')
 assert LUA, 'Lua is required for loader safety tests (lua or lua5.4)'
 HARNESS = r'''
 local count = 0
+local real_open = io.open
 hl = {
   plugin = { load = function(_) count = count + 1 end },
   get_loaded_plugins = function() error("loader must not query loaded state") end,
@@ -37,13 +38,33 @@ end
 if os.getenv("TEST_RENAME_FAILURE") == "1" then
   os.rename = function() return nil, "simulated rename failure" end
 end
-for _ = 1, 3 do dofile(arg[1]) end
+-- Six evaluations, as Hyprland performs on start and every reload. Between
+-- them the plugin's own side effects happen: it becomes loaded after the
+-- first declaring evaluation, and writes its health marker (last-ok) as the
+-- native plugin does after GRABBAR_BOOT_OK_MS. The 2026-09-15 incident was a
+-- declaration that changed between evaluations (docs/AUTOLOAD.md), so every
+-- evaluation must declare exactly what the first one did.
+local per = {}
+for i = 1, 6 do
+  local before = count
+  dofile(arg[1])
+  per[#per + 1] = count - before
+  if i == 3 and per[1] > 0 and os.getenv("TEST_PLUGIN_HEALTHY") == "1" then
+    local f = assert(real_open(os.getenv("GRABBAR_STATE_DIR") .. "/autoload/last-ok", "w"))
+    f:write(os.getenv("HYPRLAND_INSTANCE_SIGNATURE"), "\n"); f:close()
+  end
+end
+for i = 2, #per do
+  if per[i] ~= per[1] then error("declaration changed between evaluations: " .. table.concat(per, ",")) end
+  if per[i] > 1 then error("plugin declared more than once in one evaluation") end
+end
 print(count)
 '''
 
 
 def check(label, expected, *, signature='session-new', attempt=None, ok=None,
-          enabled=True, write_failure=False, close_failure=False, rename_failure=False):
+          enabled=True, write_failure=False, close_failure=False, rename_failure=False,
+          healthy=True):
     with tempfile.TemporaryDirectory() as td:
         state = Path(td)
         guard = state / 'autoload'
@@ -62,7 +83,8 @@ def check(label, expected, *, signature='session-new', attempt=None, ok=None,
                'HYPRLAND_INSTANCE_SIGNATURE': signature,
                'TEST_WRITE_FAILURE': str(int(write_failure)),
                'TEST_CLOSE_FAILURE': str(int(close_failure)),
-               'TEST_RENAME_FAILURE': str(int(rename_failure))}
+               'TEST_RENAME_FAILURE': str(int(rename_failure)),
+               'TEST_PLUGIN_HEALTHY': str(int(healthy))}
         result = subprocess.run([LUA, str(harness), str(ROOT / 'native/autoload.lua')],
                                 env=env, capture_output=True, text=True, timeout=5)
         assert result.returncode == 0, (label, result.stderr)
@@ -73,10 +95,12 @@ def check(label, expected, *, signature='session-new', attempt=None, ok=None,
 
 
 check('disabled stays off', 0, enabled=False)
-check('fresh start declares on every evaluation', 3)
-check('same instance stays declared before health confirmation', 3, attempt='session-new')
-check('healthy previous start allows next instance', 3, attempt='old', ok='old')
+check('fresh start declares on every evaluation', 6)
+check('declaration stays stable before the health marker', 6, healthy=False)
+check('same instance stays declared before health confirmation', 6, attempt='session-new')
+check('healthy previous start allows next instance', 6, attempt='old', ok='old')
 check('unconfirmed previous start stays off across reloads', 0, attempt='old')
+check('a stale health marker never re-arms a failed start', 0, attempt='old', ok='older')
 check('missing instance identity stays off', 0, signature='')
 check('unwritable attempt stays off', 0, write_failure=True)
 check('failed close stays off', 0, close_failure=True)

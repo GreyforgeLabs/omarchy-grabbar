@@ -26,78 +26,8 @@
 
 using namespace Config::Actions;
 
-// ------------------------------------------------------------- encoding
-
-std::string grabbarEncode(const std::string& v) {
-    static const char* HEX = "0123456789ABCDEF";
-    std::string        out;
-    out.reserve(v.size());
-    for (unsigned char c : v) {
-        if (c < 0x20 || c == 0x7f || c == '%' || c == '\t' || c == '\n') {
-            out += '%';
-            out += HEX[c >> 4];
-            out += HEX[c & 15];
-        } else
-            out += (char)c;
-    }
-    return out;
-}
-
-std::string grabbarDecode(const std::string& v) {
-    std::string out;
-    out.reserve(v.size());
-    for (size_t i = 0; i < v.size(); ++i) {
-        if (v[i] == '%' && i + 2 < v.size() && std::isxdigit((unsigned char)v[i + 1]) && std::isxdigit((unsigned char)v[i + 2])) {
-            out += (char)std::stoi(v.substr(i + 1, 2), nullptr, 16);
-            i += 2;
-        } else
-            out += v[i];
-    }
-    return out;
-}
-
-static std::string buildLine(const std::string& type, const Fields& fields) {
-    std::string line = type;
-    for (const auto& [k, v] : fields) {
-        line += '\t';
-        line += k;
-        line += '=';
-        line += grabbarEncode(v);
-    }
-    line += '\n';
-    return line;
-}
-
-static Fields parseLine(const std::string& line, std::string& type) {
-    Fields fields;
-    size_t start = 0;
-    bool   first = true;
-    while (start <= line.size()) {
-        size_t tab  = line.find('\t', start);
-        auto   part = line.substr(start, tab == std::string::npos ? std::string::npos : tab - start);
-        if (first) {
-            type  = part;
-            first = false;
-        } else if (!part.empty()) {
-            auto eq = part.find('=');
-            if (eq == std::string::npos)
-                fields.emplace_back(part, "");
-            else
-                fields.emplace_back(part.substr(0, eq), grabbarDecode(part.substr(eq + 1)));
-        }
-        if (tab == std::string::npos)
-            break;
-        start = tab + 1;
-    }
-    return fields;
-}
-
-static std::string field(const Fields& f, const char* key, const std::string& def = "") {
-    for (const auto& [k, v] : f)
-        if (k == key)
-            return v;
-    return def;
-}
+using grabbar::field;
+using grabbar::parseArgb;
 
 static const char* statusName(eActionStatus s) {
     switch (s) {
@@ -241,10 +171,11 @@ std::string CGrabbarBackend::tokenFor(PHLWINDOW w) {
     const auto KEY = (uintptr_t)w.get();
     if (auto it = m_tokenByWindow.find(KEY); it != m_tokenByWindow.end()) {
         // A reused address for a different live window gets a fresh token.
-        auto& t = m_windows[it->second];
-        if (t.window.lock() == w && t.stableId == w->m_stableID)
-            return it->second;
-        m_windows.erase(it->second);
+        if (auto t = m_windows.find(it->second); t != m_windows.end()) {
+            if (t->second.window.lock() == w && t->second.stableId == w->m_stableID)
+                return it->second;
+            m_windows.erase(t);
+        }
         m_tokenByWindow.erase(it);
     }
 
@@ -586,7 +517,8 @@ eActionStatus CGrabbarBackend::restore(const std::string& token, const std::stri
         err = "stale target";
         return ACTION_STALE;
     }
-    if (!t->owned) {
+    const bool RECOVERED = !t->owned;
+    if (RECOVERED) {
         if (!onOwnedWorkspace(w)) {
             err = "window is already visible";
             return ACTION_REFUSED;
@@ -598,12 +530,15 @@ eActionStatus CGrabbarBackend::restore(const std::string& token, const std::stri
     }
     std::string note;
     auto        dest = destinationWorkspace(*t, destination, monitorName, note);
-    if (!dest) {
-        err = "no destination workspace";
+    if (!dest || !returnWindow(*t, dest, focus, err)) {
+        if (!dest)
+            err = "no destination workspace";
+        // A failed attempt must not turn an unrecorded window into a
+        // Grabbar-owned one: it stays a Recovered row.
+        if (RECOVERED)
+            t->owned = false;
         return ACTION_FAILED;
     }
-    if (!returnWindow(*t, dest, focus, err))
-        return ACTION_FAILED;
     if (!note.empty())
         err = note;
     Log::logger->log(Log::INFO, "[grabbar] restored {} to {}", token, dest->m_name);
@@ -698,11 +633,25 @@ size_t CGrabbarBackend::restoreAllOwned(const char* reason) {
     size_t n = 0;
     // Returning a window fires compositor events that can erase entries
     // (a client may die mid-move), so walk a snapshot of the tokens.
-    std::vector<std::string> tokens;
+    std::vector<std::pair<std::string, bool>> tokens; // token, recovered (no minimize record)
     for (const auto& [token, t] : m_windows)
         if (t.owned)
-            tokens.push_back(token);
-    for (const auto& token : tokens) {
+            tokens.emplace_back(token, false);
+    // Windows that sit on Grabbar's workspace without a minimize record
+    // (moved there by another tool, or left by a failed return) come back
+    // too. Unload, the grace period and Disable are the last moments any
+    // Grabbar UI can return them; afterwards they would stay hidden.
+    for (const auto& w : Desktop::windowState()->windows()) {
+        if (!validMapped(w) || !onOwnedWorkspace(w))
+            continue;
+        const auto TOKEN = tokenFor(w);
+        if (auto t = tracked(TOKEN); t && !t->owned) {
+            t->origin = SWindowOrigin{};
+            t->owned  = true;
+            tokens.emplace_back(TOKEN, true);
+        }
+    }
+    for (const auto& [token, recovered] : tokens) {
         auto t = tracked(token);
         if (!t || !t->owned)
             continue;
@@ -714,6 +663,8 @@ size_t CGrabbarBackend::restoreAllOwned(const char* reason) {
         std::string note, err;
         auto        dest = destinationWorkspace(*t, "original", "", note);
         if (!dest || !returnWindow(*t, dest, false, err)) {
+            if (recovered)
+                t->owned = false;
             Log::logger->log(Log::ERR, "[grabbar] could not return {}: {}", token, err);
             continue;
         }
@@ -905,7 +856,7 @@ void CGrabbarBackend::sendState(SGrabbarClient* c) {
 void CGrabbarBackend::send(SGrabbarClient* c, const std::string& type, const Fields& fields) {
     if (!c || c->dead || c->fd < 0)
         return;
-    c->outbuf += buildLine(type, fields);
+    grabbar::appendLine(c->outbuf, type, fields);
     if (c->outbuf.size() > GRABBAR_MAX_OUTBUF) {
         dropClient(c, "output backlog");
         return;
@@ -1047,7 +998,7 @@ void CGrabbarBackend::onGraceExpired() {
 
 void CGrabbarBackend::handleLine(SGrabbarClient* c, const std::string& line) {
     std::string type;
-    const auto  F = parseLine(line, type);
+    const auto  F = grabbar::parseLine(line, type);
 
     if (type == "hello") {
         if (field(F, "protocol") != std::to_string(GRABBAR_PROTOCOL)) {
@@ -1202,22 +1153,6 @@ void CGrabbarBackend::handleLine(SGrabbarClient* c, const std::string& line) {
 
 // ------------------------------------------------- shell-pushed appearance
 
-static std::optional<uint64_t> parseArgb(const std::string& v) {
-    // "#rrggbb", "#aarrggbb", "rrggbb" or "aarrggbb"; anything else is ignored.
-    std::string hex = v;
-    if (!hex.empty() && hex[0] == '#')
-        hex.erase(0, 1);
-    if (hex.size() != 6 && hex.size() != 8)
-        return std::nullopt;
-    for (unsigned char ch : hex)
-        if (!std::isxdigit(ch))
-            return std::nullopt;
-    uint64_t val = std::stoull(hex, nullptr, 16);
-    if (hex.size() == 6)
-        val |= 0xff000000ull;
-    return val;
-}
-
 void CGrabbarBackend::applyTheme(const Fields& f) {
     auto& t = g_pGlobalState->shell;
     auto  set = [&](const char* key, std::optional<uint64_t>& slot) {
@@ -1257,19 +1192,7 @@ void CGrabbarBackend::applySettings(const Fields& f) {
             t.buttonSize.reset();
         }
     }
-    if (const auto V = field(f, "excludedClasses"); true) {
-        t.excludedClasses.clear();
-        size_t start = 0;
-        while (start <= V.size() && t.excludedClasses.size() < 256) {
-            const auto bar  = V.find('|', start);
-            auto       part = V.substr(start, bar == std::string::npos ? std::string::npos : bar - start);
-            if (!part.empty())
-                t.excludedClasses.push_back(part.substr(0, 128));
-            if (bar == std::string::npos)
-                break;
-            start = bar + 1;
-        }
-    }
+    t.excludedClasses = grabbar::splitClasses(field(f, "excludedClasses"));
     g_pGlobalState->glyphCache.clear();
     for (auto& b : g_pGlobalState->bars) {
         if (!b)

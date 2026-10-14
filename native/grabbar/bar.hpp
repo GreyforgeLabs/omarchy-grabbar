@@ -21,6 +21,7 @@
 #include <hyprland/src/helpers/signal/Signal.hpp>
 
 #include "globals.hpp"
+#include "protocol.hpp"
 
 #define private public
 #include <hyprland/src/managers/input/InputManager.hpp>
@@ -30,18 +31,12 @@ namespace Event {
     struct SCallbackInfo;
 }
 
-enum eGrabbarButton : int8_t {
-    BTN_NONE = -1,
-    BTN_MENU = 0,
-    BTN_MINIMIZE,
-    BTN_MAXIMIZE,
-    BTN_CLOSE,
-};
-
-struct SButtonSlot {
-    eGrabbarButton id = BTN_NONE;
-    CBox           box; // logical pixels, relative to the strip's top-left
-};
+using eGrabbarButton                     = grabbar::eButton;
+inline constexpr eGrabbarButton BTN_NONE     = grabbar::BUTTON_NONE;
+inline constexpr eGrabbarButton BTN_MENU     = grabbar::BUTTON_MENU;
+inline constexpr eGrabbarButton BTN_MINIMIZE = grabbar::BUTTON_MINIMIZE;
+inline constexpr eGrabbarButton BTN_MAXIMIZE = grabbar::BUTTON_MAXIMIZE;
+inline constexpr eGrabbarButton BTN_CLOSE    = grabbar::BUTTON_CLOSE;
 
 class CGrabbarDeco : public IHyprWindowDecoration {
   public:
@@ -99,8 +94,9 @@ class CGrabbarDeco : public IHyprWindowDecoration {
     bool                       effectiveEnabled();
     bool                       inputIsValid();
     Vector2D                   cursorRelativeToBar();
-    std::vector<SButtonSlot>   layoutButtons(double barW, double barH);
+    grabbar::SSlots            layoutButtons(double barW, double barH);
     eGrabbarButton             buttonAt(const Vector2D& rel);
+    eGrabbarButton             buttonAt(const CBox& strip, const Vector2D& rel);
     void                       onMouseButton(Event::SCallbackInfo& info, IPointer::SButtonEvent e);
     void                       onMouseMove(Vector2D coords);
     void                       handleDownEvent(Event::SCallbackInfo& info);

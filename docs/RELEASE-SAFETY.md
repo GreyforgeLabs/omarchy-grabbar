@@ -52,6 +52,18 @@ Full clean-install and UWSM/systemd login qualification remains pending;
 this is a preview release. Historical broader UI tests are in
 `QUALIFICATION.md`.
 
+## 0.1.2 source changes (not yet nested-qualified)
+
+0.1.2 changes native source (`protocol.hpp` codec/layout split, strip hover
+fast path, glyph cache key, restore-all of unrecorded hidden windows, drag
+cleanup in the strip destructor). `native/autoload.lua` is unchanged
+(SHA-256 `eaa6586d…9496f39`). Verified offline: clean `g++` build with no
+warnings, `tests/run.sh` (including the native codec/layout suite under
+ASan/UBSan and the startup-safety source guards) and `tests/qml/run.sh`.
+Before publishing 0.1.2, rebuild from the release source and pass
+`startup-nested.sh all` and `scenarios-nested.sh` against that binary, as for
+0.1.1.
+
 ## Stable-release gate
 
 Before a stable release, build the native plugin from the exact release source,

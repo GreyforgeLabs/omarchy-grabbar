@@ -62,7 +62,7 @@ tested matrix: `docs/COMPATIBILITY.md`.
 
 ## Status
 
-**0.1.1 preview** (spec milestone G3). The whole workflow — strip, menu,
+**0.1.2 preview** (spec milestone G3). The whole workflow — strip, menu,
 drawer, settings, journal, recovery — is implemented and qualified on one
 exact desktop build: **Omarchy 4.0.x with Hyprland 0.56.2
 (`efb50993…`)** and Quickshell 0.3.1. The native part is a compositor
@@ -277,7 +277,7 @@ sandboxed `omarchy-shell` and the scripts are described in
 | `tests/integration/stress-nested.sh` | 500 minimize/restore cycles watching memory, fds and tracked entries |
 | `tests/integration/startup-nested.sh` | Cold start, reloads, load/unload and the boot guard |
 
-## Known limitations (0.1.1)
+## Known limitations (0.1.2)
 
 - Qualified on one Hyprland build only. A different build needs a rebuild
   and a rerun of the nested suites.

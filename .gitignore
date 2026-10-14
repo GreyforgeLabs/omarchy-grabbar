@@ -5,3 +5,4 @@ __pycache__/
 *.o
 native/upstream/
 tests/integration/vpointer/vpointer
+tests/native/build/

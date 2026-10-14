@@ -40,6 +40,25 @@ with tempfile.TemporaryDirectory() as td:
     assert open(cfg).read() == original, repr(open(cfg).read())
     assert al.status(state, cfg)["state"] == "not-installed"
     assert al.disable(state, cfg) == "not-installed"
+    # a symlinked config keeps its link and the target keeps its mode
+    real = os.path.join(td, "dotfiles-hyprland.lua"); link = os.path.join(td, "linked.lua")
+    open(real, "w").write(original); os.chmod(real, 0o600); os.symlink(real, link)
+    assert al.enable(state, link).startswith("installed")
+    assert os.path.islink(link) and open(real).read().count(al.BEGIN) == 1
+    assert (os.stat(real).st_mode & 0o777) == 0o600, oct(os.stat(real).st_mode)
+    assert al.disable(state, link).startswith("removed")
+    assert os.path.islink(link) and open(real).read() == original and (os.stat(real).st_mode & 0o777) == 0o600
+    # hand-edited block whose END line lost its newline is still removed
+    open(cfg, "w").write(original + "\n" + al.HOOK.rstrip("\n"))
+    assert al.disable(state, cfg).startswith("removed") and open(cfg).read() == original
+    # a block without its END marker is reported, never claimed as removed
+    broken = original + "\n" + al.BEGIN + "\npcall(dofile, x)\n"
+    open(cfg, "w").write(broken)
+    try:
+        al.disable(state, cfg)
+        raise AssertionError("disable claimed success on a broken block")
+    except SystemExit as e:
+        assert "by hand" in str(e) and open(cfg).read() == broken
     # the shipped Lua must parse and must not reference loaded-plugin state
     lua = open(os.path.join(ROOT, "native", "autoload.lua")).read()
     assert "get_loaded_plugins" not in lua

@@ -30,9 +30,7 @@
 
 #include <cairo/cairo.h>
 
-#include <climits>
 #include <cmath>
-#include <format>
 
 using namespace Render::GL;
 
@@ -144,6 +142,10 @@ CGrabbarDeco::CGrabbarDeco(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
 }
 
 CGrabbarDeco::~CGrabbarDeco() {
+    // The window (or the plugin) can go away mid-drag; its release would then
+    // never reach this strip and the pointer would stay in move mode.
+    if (m_dragging && g_pKeybindManager)
+        endDrag();
     std::erase(g_pGlobalState->bars, m_self);
 }
 
@@ -183,50 +185,16 @@ std::string CGrabbarDeco::getDisplayName() {
 
 // ----------------------------------------------------------------- layout
 
-std::vector<SButtonSlot> CGrabbarDeco::layoutButtons(double barW, double barH) {
-    const int  SIZE = buttonSizeValue();
-    const int  PAD  = std::clamp<int>(g_pGlobalState->config.padding->value(), 0, 32);
-    const bool LEFT = buttonsLeftValue();
-    const double y  = std::floor((barH - SIZE) / 2.0);
+grabbar::SSlots CGrabbarDeco::layoutButtons(double barW, double barH) {
+    return grabbar::layoutSlots(barW, barH, buttonSizeValue(), std::clamp<int>(g_pGlobalState->config.padding->value(), 0, 32), buttonsLeftValue());
+}
 
-    std::vector<SButtonSlot> slots;
-
-    // Narrow window: keep only the window-menu target (spec §3.3).
-    const bool NARROW = barW < PAD * 2 + SIZE * 4 + 24;
-
-    if (!LEFT) {
-        if (!NARROW) {
-            double x = barW - PAD - SIZE * 3;
-            for (auto b : {BTN_MINIMIZE, BTN_MAXIMIZE, BTN_CLOSE}) {
-                slots.push_back({b, CBox{x, y, (double)SIZE, (double)SIZE}});
-                x += SIZE;
-            }
-        }
-        slots.push_back({BTN_MENU, CBox{(double)PAD, y, (double)SIZE, (double)SIZE}});
-    } else {
-        if (!NARROW) {
-            double x = PAD;
-            for (auto b : {BTN_CLOSE, BTN_MINIMIZE, BTN_MAXIMIZE}) {
-                slots.push_back({b, CBox{x, y, (double)SIZE, (double)SIZE}});
-                x += SIZE;
-            }
-        }
-        slots.push_back({BTN_MENU, CBox{barW - PAD - SIZE, y, (double)SIZE, (double)SIZE}});
-    }
-
-    if (NARROW && barW < PAD * 2 + SIZE)
-        slots.clear();
-
-    return slots;
+eGrabbarButton CGrabbarDeco::buttonAt(const CBox& strip, const Vector2D& rel) {
+    return grabbar::buttonAt(layoutButtons(strip.w, strip.h), rel.x, rel.y);
 }
 
 eGrabbarButton CGrabbarDeco::buttonAt(const Vector2D& rel) {
-    const auto BOX = assignedBoxGlobal();
-    for (const auto& s : layoutButtons(BOX.w, BOX.h)) {
-        if (s.box.containsPoint(rel))
-            return s.id;
-    }
-    return BTN_NONE;
+    return buttonAt(assignedBoxGlobal(), rel);
 }
 
 // ------------------------------------------------------------------ input
@@ -237,6 +205,12 @@ bool CGrabbarDeco::inputIsValid() {
 
     const auto PWINDOW = m_window.lock();
     if (!validMapped(PWINDOW))
+        return false;
+
+    // A strip on a workspace that is not shown (another workspace, or
+    // Grabbar's own hidden one) shares screen coordinates with visible
+    // windows; skip the hit tests for it unless it holds focus.
+    if (!PWINDOW->m_pinned && PWINDOW->m_workspace && !PWINDOW->m_workspace->isVisible() && PWINDOW != Desktop::focusState()->window())
         return false;
 
     if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(PWINDOW->wlSurface()->resource()))
@@ -395,14 +369,23 @@ void CGrabbarDeco::handleUpEvent(Event::SCallbackInfo& info) {
 }
 
 void CGrabbarDeco::onMouseMove(Vector2D coords) {
+    // Every strip sees every pointer motion: keep the common case (pointer
+    // over some other window) to one box test and no layout work.
     if (!validMapped(m_window))
         return;
 
     // Hover feedback, only when this strip is what the pointer is really over
     // (an overlapping floating window or a layer surface must not light it up).
-    auto HB = effectiveEnabled() ? buttonAt(cursorRelativeToBar()) : BTN_NONE;
-    if (HB != BTN_NONE && !inputIsValid())
-        HB = BTN_NONE;
+    auto HB = BTN_NONE;
+    if (effectiveEnabled()) {
+        const auto BOX = assignedBoxGlobal();
+        const auto REL = g_pInputManager->getMouseCoordsInternal() - BOX.pos();
+        if (REL.x >= 0 && REL.y >= 0 && REL.x < BOX.w && REL.y < BOX.h) {
+            HB = buttonAt(BOX, REL);
+            if (HB != BTN_NONE && !inputIsValid())
+                HB = BTN_NONE;
+        }
+    }
     if (HB != m_hoverButton) {
         m_hoverButton = HB;
         damageEntire();
@@ -506,8 +489,7 @@ void CGrabbarDeco::activate(eGrabbarButton b, const std::string& token) {
 // -------------------------------------------------------------- rendering
 
 SP<Render::ITexture> CGrabbarDeco::glyph(eGrabbarButton b, bool maximized, int size, const CHyprColor& color) {
-    const auto KEY  = std::format("{}:{}:{}:{:x}", (int)b, maximized ? 1 : 0, size, color.getAsHex());
-    auto&      slot = g_pGlobalState->glyphCache[KEY];
+    auto& slot = g_pGlobalState->glyphCache[grabbar::glyphKey(b, maximized, size, color.getAsHex())];
     if (!slot || slot->m_texID == 0)
         slot = drawGlyph(b, maximized, size, color);
     return slot;
@@ -627,17 +609,13 @@ void CGrabbarDeco::renderPass(PHLMONITOR pMonitor, const float& a) {
     double occupiedLeft = 0, occupiedRight = 0;
 
     for (const auto& s : SLOTS) {
-        CBox b = s.box;
+        CBox b = {s.x, s.y, s.w, s.h};
         b.translate(Vector2D{titleBarBox.x / SCALE, titleBarBox.y / SCALE}).scale(SCALE).round();
 
-        if (s.id == BTN_MENU && !LEFT)
-            occupiedLeft = std::max(occupiedLeft, s.box.x + s.box.w);
-        else if (s.id == BTN_MENU)
-            occupiedRight = std::max(occupiedRight, DECOBOX.w - s.box.x);
-        else if (LEFT)
-            occupiedLeft = std::max(occupiedLeft, s.box.x + s.box.w);
+        if ((s.id == BTN_MENU) != LEFT)
+            occupiedLeft = std::max(occupiedLeft, s.x + s.w);
         else
-            occupiedRight = std::max(occupiedRight, DECOBOX.w - s.box.x);
+            occupiedRight = std::max(occupiedRight, DECOBOX.w - s.x);
 
         const bool HOVER   = m_hoverButton == s.id && m_pressedButton == BTN_NONE;
         const bool PRESSED = m_pressedButton == s.id && m_hoverButton == s.id;

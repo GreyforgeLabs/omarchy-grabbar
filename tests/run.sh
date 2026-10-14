@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Offline test suite: pure model, recovery journal helper, backend protocol
-# client, syntax checks, and the Omarchy manifest validator when available.
-# Needs node, python3 and Lua. The native backend and the nested-compositor
-# scenarios (tests/integration) are run separately; see docs/QUALIFICATION.md.
+# client, CLI, native codec/layout (ASan/UBSan) and startup-safety guards,
+# syntax checks, and the Omarchy manifest validator when available.
+# Needs node, python3, Lua and a C++23 compiler. The native plugin itself and
+# the nested-compositor scenarios (tests/integration) are run separately; see
+# docs/QUALIFICATION.md.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 node tests/unit/test_model.js
@@ -11,7 +13,14 @@ python3 tests/unit/test_autoload.py
 python3 tests/unit/test_loader.py
 python3 tests/unit/test_startup_selection.py
 python3 tests/unit/test_protocol.py
-python3 -m py_compile helpers/grabbar-journal helpers/grabbar_backend.py
+python3 tests/unit/test_cli.py
+python3 tests/unit/test_native_guards.py
+if command -v "${CXX:-c++}" >/dev/null 2>&1; then
+  tests/native/run.sh
+else
+  echo "tests/native: no C++ compiler, skipped"
+fi
+python3 -m py_compile helpers/grabbar-journal helpers/grabbar-autoload helpers/grabbar_backend.py
 bash -n bin/grabbar tests/integration/*.sh
 if command -v qmllint >/dev/null 2>&1; then
   # Host modules (qs.Commons, qs.Ui, Quickshell.*) are not resolvable offline;

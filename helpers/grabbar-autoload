@@ -14,7 +14,7 @@ operator decides when the plugin is first loaded (`hyprctl reload`, or the next
 login). `disable` removes the line and the marker. `retry` clears a recorded
 failed start so the next evaluation declares the plugin again.
 """
-import argparse, json, os, re, sys, time
+import argparse, json, os, re, stat, sys, time
 
 BEGIN = "-- BEGIN tech.greyforge.grabbar autoload"
 END = "-- END tech.greyforge.grabbar autoload"
@@ -108,6 +108,22 @@ def retry(state_dir):
             pass
 
 
+def replace_config(hypr_config, text):
+    """Atomically replace the config's contents. A symlinked config (dotfile
+    managers) keeps its link: the file it points to is replaced. The file
+    mode is preserved."""
+    target = os.path.realpath(hypr_config)
+    try:
+        mode = stat.S_IMODE(os.stat(target).st_mode)
+    except OSError:
+        mode = 0o644
+    tmp = target + ".grabbar.tmp"
+    with open(tmp, "w") as f:
+        f.write(text)
+    os.chmod(tmp, mode)
+    os.replace(tmp, target)
+
+
 def enable(state_dir, hypr_config):
     try:
         with open(hypr_config) as f:
@@ -123,11 +139,7 @@ def enable(state_dir, hypr_config):
     if not text.endswith("\n"):
         text += "\n"
     text += "\n" + HOOK
-    tmp = hypr_config + ".grabbar.tmp"
-    with open(tmp, "w") as f:
-        f.write(text)
-    os.chmod(tmp, 0o644)
-    os.replace(tmp, hypr_config)
+    replace_config(hypr_config, text)
     arm(state_dir)
     return "installed (backup: %s)" % backup
 
@@ -141,15 +153,17 @@ def disable(state_dir, hypr_config):
         return "no config"
     if BEGIN not in text:
         return "not-installed"
-    new = re.sub(r"\n?" + re.escape(BEGIN) + r".*?" + re.escape(END) + r"\n", "", text, count=1, flags=re.S)
+    # The END marker may be the last line without a newline after hand edits.
+    new = re.sub(r"\n?" + re.escape(BEGIN) + r".*?" + re.escape(END) + r"(?:\n|\Z)", "", text, count=1, flags=re.S)
+    if BEGIN in new:
+        # Never report a removal that did not happen: the hook would keep
+        # loading the native plugin at the next login.
+        raise SystemExit("grabbar-autoload: could not find the end of the Grabbar block in %s; "
+                         "remove the lines between '%s' and '%s' by hand" % (hypr_config, BEGIN, END))
     backup = "%s.bak.%s" % (hypr_config, time.strftime("%Y%m%d-%H%M%S"))
     with open(backup, "w") as f:
         f.write(text)
-    tmp = hypr_config + ".grabbar.tmp"
-    with open(tmp, "w") as f:
-        f.write(new)
-    os.chmod(tmp, 0o644)
-    os.replace(tmp, hypr_config)
+    replace_config(hypr_config, new)
     return "removed (backup: %s)" % backup
 
 

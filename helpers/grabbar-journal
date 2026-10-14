@@ -15,7 +15,6 @@ damaged file aside for diagnostics instead of deleting it. Stdlib only.
 """
 from __future__ import annotations
 
-import argparse
 import errno
 import json
 import os
@@ -201,20 +200,46 @@ def inspect(state_dir: str) -> dict:
     return out
 
 
+USAGE = "usage: grabbar-journal {read,write,quarantine,inspect} [--state-dir DIR] [--reason WORD]"
+
+
+def parse_args(argv: list[str]) -> dict | None:
+    # Hand-rolled: argparse alone costs more start-up time than the whole
+    # write (the shell spawns this helper for every journal update).
+    opts = {"command": None, "state_dir": None, "reason": "damaged"}
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        key, eq, value = arg.partition("=")
+        if key in ("--state-dir", "--reason"):
+            if not eq:
+                i += 1
+                if i >= len(argv):
+                    return None
+                value = argv[i]
+            opts["state_dir" if key == "--state-dir" else "reason"] = value
+        elif arg in ("read", "write", "quarantine", "inspect") and opts["command"] is None:
+            opts["command"] = arg
+        else:
+            return None
+        i += 1
+    return opts if opts["command"] else None
+
+
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Grabbar recovery journal")
-    ap.add_argument("command", choices=("read", "write", "quarantine", "inspect"))
-    ap.add_argument("--state-dir", default=default_state_dir())
-    ap.add_argument("--reason", default="damaged")
-    args = ap.parse_args(argv)
-    if args.command == "read":
-        emit(read_state(args.state_dir))
-    elif args.command == "write":
-        emit(write_state(args.state_dir, sys.stdin.read(MAX_BYTES + 1)))
-    elif args.command == "quarantine":
-        emit(quarantine(args.state_dir, args.reason))
+    args = parse_args(sys.argv[1:] if argv is None else argv)
+    if args is None:
+        sys.stderr.write(USAGE + "\n")
+        return 2
+    state_dir = args["state_dir"] or default_state_dir()
+    if args["command"] == "read":
+        emit(read_state(state_dir))
+    elif args["command"] == "write":
+        emit(write_state(state_dir, sys.stdin.read(MAX_BYTES + 1)))
+    elif args["command"] == "quarantine":
+        emit(quarantine(state_dir, args["reason"]))
     else:
-        emit(inspect(args.state_dir))
+        emit(inspect(state_dir))
     return 0
 
 

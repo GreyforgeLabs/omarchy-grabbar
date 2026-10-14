@@ -18,7 +18,7 @@ TARGET = grabbar.so
 
 all: $(TARGET)
 
-$(TARGET): $(SRC) globals.hpp backend.hpp bar.hpp pass.hpp
+$(TARGET): $(SRC) globals.hpp backend.hpp bar.hpp pass.hpp protocol.hpp
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(EXTRA_FLAGS) $(INCLUDES) $(SRC) -o $@ $(LIBS)
 
 clean:

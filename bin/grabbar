@@ -50,18 +50,35 @@ Usage: grabbar <command>
 USAGE
 }
 
-status_json() {
-  local shell backend
+# One Python process for the whole report: the backend is queried in-process
+# through helpers/grabbar_backend.py instead of a separate client process.
+status_report() {
+  local shell
   shell="$(ipc status)"
-  backend=""
-  if backend_available; then backend="$(backend status 2>/dev/null || true)"; fi
-  python3 - "$shell" "$backend" <<'PY'
-import json, sys
-shell, backend = sys.argv[1], sys.argv[2]
+  python3 - "$HERE/helpers" "$shell" "${1:-}" <<'PY'
+import json, os, stat, sys
+sys.path.insert(0, sys.argv[1])
+shell, mode = sys.argv[2], sys.argv[3]
 def load(s):
     try: return json.loads(s) if s else None
     except ValueError: return {"error": "unparseable"}
-out = {"schema": 1, "shell": load(shell), "backend": load(backend)}
+backend = None
+runtime, session = os.environ.get("XDG_RUNTIME_DIR", ""), os.environ.get("HYPRLAND_INSTANCE_SIGNATURE", "")
+path = os.path.join(runtime, "grabbar", session, "backend.sock")
+try:
+    is_socket = bool(runtime and session) and stat.S_ISSOCK(os.stat(path).st_mode)
+except OSError:
+    is_socket = False
+if is_socket:
+    try:
+        import grabbar_backend as gb
+        client = gb.BackendClient(path=path, timeout=3)
+        client.connect("observer")
+        try: backend = client.status()
+        finally: client.close()
+    except Exception:
+        backend = None
+out = {"schema": 1, "shell": load(shell), "backend": backend}
 b = out["backend"] or {}
 s = out["shell"] or {}
 out["summary"] = {
@@ -71,7 +88,15 @@ out["summary"] = {
     "decorations": "suspended" if (not b or b.get("suspended")) else "active",
     "minimized": int(b.get("owned", 0)) if b else 0,
 }
-print(json.dumps(out, indent=2, sort_keys=True))
+if mode == "--json":
+    print(json.dumps(out, indent=2, sort_keys=True))
+else:
+    m = out["summary"]
+    print("native backend  " + ("loaded (epoch %s)" % b.get("epoch") if m["backendLoaded"] else "not loaded"))
+    print("shell service   " + ("running" if m["shellRunning"] else "not running"))
+    print("controls        " + m["decorations"])
+    print("minimize        " + ("enabled" if m["minimizeEnabled"] else "disabled"))
+    print("minimized       " + str(m["minimized"]))
 PY
 }
 
@@ -86,17 +111,7 @@ case "$ACTION" in
     need_shell
     if ipc status | grep -q '"paused":true'; then ipc openSettings >/dev/null; else ipc openDrawer >/dev/null; fi ;;
   setup|settings) need_shell; ipc openSettings >/dev/null ;;
-  status)
-    if [[ "${1:-}" == "--json" ]]; then status_json; else
-      status_json | python3 -c '
-import json,sys
-d=json.load(sys.stdin); s=d["summary"]; b=d.get("backend") or {}
-print("native backend  " + ("loaded (epoch %s)" % b.get("epoch") if s["backendLoaded"] else "not loaded"))
-print("shell service   " + ("running" if s["shellRunning"] else "not running"))
-print("controls        " + s["decorations"])
-print("minimize        " + ("enabled" if s["minimizeEnabled"] else "disabled"))
-print("minimized       " + str(s["minimized"]))'
-    fi ;;
+  status) status_report "${1:-}" ;;
   windows)
     backend_available || { echo "grabbar: native backend unavailable" >&2; exit 3; }
     backend windows | python3 -c '
@@ -110,9 +125,9 @@ for l in sys.stdin:
     ORIG=""; [[ "${2:-}" == "--original" ]] && ORIG="--original"
     RESULT="$(ipc restore "$TOKEN" "${ORIG:+original}")"
     if [[ -n "$RESULT" ]]; then
-      # Shell answers: restoring | busy | unknown | invalid
+      # Shell answers: restoring | busy | unknown | invalid | offline
       echo "$RESULT"
-      case "$RESULT" in restoring|busy) exit 0 ;; unknown) exit 4 ;; *) exit 2 ;; esac
+      case "$RESULT" in restoring|busy) exit 0 ;; unknown) exit 4 ;; offline) exit 3 ;; *) exit 2 ;; esac
     fi
     backend_available || { echo "grabbar: neither the shell service nor the native backend is available" >&2; exit 3; }
     RESULT="$(backend restore "$TOKEN" $ORIG)"

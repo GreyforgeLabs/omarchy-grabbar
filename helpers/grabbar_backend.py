@@ -9,7 +9,6 @@ the message type, the rest are key=value with control characters, '%', tab and
 newline percent-encoded.
 """
 
-import argparse
 import json
 import os
 import select
@@ -191,6 +190,8 @@ def _print(msg):
 
 
 def main(argv=None):
+    import argparse  # CLI only: importers (bin/grabbar status) skip its start-up cost
+
     ap = argparse.ArgumentParser(description="Grabbar backend socket client")
     ap.add_argument("--session", help="Hyprland instance signature (default: $HYPRLAND_INSTANCE_SIGNATURE)")
     ap.add_argument("--role", default="observer", choices=("observer", "shell"))

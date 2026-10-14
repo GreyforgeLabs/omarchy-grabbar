@@ -62,6 +62,8 @@ Item {
   property string journalStatus: "loading"
   property var journalParsed: null
   property bool journalConsumed: false
+  property bool journalFresh: false    // journalParsed not yet reconciled
+  property string modelEpoch: ""       // backend epoch the model's tokens belong to
   property bool journalDirty: false
   property string pendingJournalText: ""
   property var afterWrite: []
@@ -154,6 +156,7 @@ Item {
   }
 
   function onJournalRead(text) {
+    root.journalFresh = true
     var envelope = null
     try { envelope = JSON.parse(String(text || "").slice(0, Model.JOURNAL_MAX_BYTES + 4096)) } catch (e) {}
     var status = envelope && envelope.status ? String(envelope.status) : "error"
@@ -184,9 +187,19 @@ Item {
 
   function maybeReconcile() {
     if (!root.snapshotDone || root.journalStatus === "loading" || root.journalConsumed) return
+    // The journal on disk is read once at start (and on `reconcile` IPC).
+    // A later reconnect starts from the in-memory model: this service is the
+    // journal's only writer, so memory is at least as new as the file.
     var parsed = root.journalParsed || { status: "empty", entries: [], epoch: "" }
-    var entries = parsed.status === "ok" ? parsed.entries : []
-    var result = Model.reconcile(root.model, entries, root.live, root.backendEpoch, parsed.epoch)
+    var entries = root.model.entries
+    var entriesEpoch = root.modelEpoch
+    if (root.journalFresh) {
+      entries = parsed.status === "ok" ? parsed.entries : []
+      entriesEpoch = parsed.epoch
+    }
+    var result = Model.reconcile(root.model, entries, root.live, root.backendEpoch, entriesEpoch)
+    root.journalFresh = false
+    root.modelEpoch = root.backendEpoch
     root.journalConsumed = true
     root.commit(result.state)
     var r = result.report
@@ -409,6 +422,9 @@ Item {
     if (idx === -1) return "unknown"
     var entry = root.model.entries[idx]
     if (entry.status === "prepared" || entry.status === "restoring") return "busy"
+    // Without the backend the request would never be answered and the row
+    // would stay "restoring"; keep it restorable instead.
+    if (!root.backendReady) { root.say("Grabbar's native backend is not connected; the window stays in the drawer"); return "offline" }
     var dest = Model.restoreDestination(entry, mode === "original" ? "original" : "current", monitor || root.currentMonitorName())
     var requestId = root.nextRequestId()
     root.commit(Model.markRestoring(root.model, token, requestId).state)
@@ -418,6 +434,7 @@ Item {
   }
 
   function restoreAll() {
+    if (!root.backendReady) { root.say("Grabbar's native backend is not connected; the windows stay in the drawer"); return 0 }
     var mon = root.currentMonitorName()
     var list = root.model.entries.slice()
     var n = 0
@@ -649,14 +666,22 @@ Item {
     }
   }
 
-  // Retry every 2 s while not connected: the native plugin may be loaded after
-  // the shell, unloaded for an update, or reloaded at any time.
+  // Retry while not connected: the native plugin may be loaded after the
+  // shell, unloaded for an update, or reloaded at any time. The first retry
+  // comes quickly (well inside the backend's shell grace period, 2 s by
+  // default), later ones back off to 8 s so an unloaded backend costs few
+  // wakeups.
+  property int reconnectDelay: 250
+  onBackendConnectedChanged: if (backendConnected) reconnectDelay = 250
   Timer {
     id: reconnectTimer
-    interval: 2000
+    interval: root.reconnectDelay
     repeat: true
     running: root.socketPath !== "" && !root.backendConnected
-    onTriggered: root.connectBackend()
+    onTriggered: {
+      root.connectBackend()
+      root.reconnectDelay = Math.min(root.reconnectDelay * 2, 8000)
+    }
   }
 
   Timer { id: noticeTimer; interval: 6000; repeat: false; onTriggered: root.notice = "" }

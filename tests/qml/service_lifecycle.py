@@ -43,3 +43,5 @@ with tempfile.TemporaryDirectory(prefix="grabbar-service-lifecycle-") as directo
     assert result.returncode == 0, result.returncode
     for mode in ("with", "without"):
         assert f"PASS actual Service/BarWidget {mode} service lookup: 0 -> 1 -> 0 -> 1 -> 0" in result.stdout
+    assert "PASS reconnect keeps session rows; offline restore keeps rows restorable" in result.stdout
+    assert "FAIL" not in result.stdout

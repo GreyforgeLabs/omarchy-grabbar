@@ -1,13 +1,53 @@
 # Changelog
 
-## Unreleased
+## 0.1.2 — unreleased (proposed)
 
-- Fixed: Minimize stayed disabled ("Grabbar needs its bar widget") when the
-  active bar is a replacement bar plugin. Omarchy 4 gives third-party widgets
-  under such a bar a shell facade without service lookup, so the widget never
-  registered as a restore host. Widgets now report their lifetime through a
-  plugin-local QML registry, independent of service lookup. Removing or hiding
-  the last widget disables Minimize even if its layout entry remains configured.
+### Fixed
+- Windows sitting on Grabbar's hidden workspace without a minimize record
+  now come back on plugin unload, after the shell grace period, on Disable
+  and on `restore-all`, so they never stay hidden once Grabbar's UI is gone.
+  A failed restore of such a "Recovered" window no longer marks it as
+  minimized by Grabbar.
+- A strip that is destroyed during a title-bar drag (window closed, plugin
+  unloaded) ends the drag instead of leaving the pointer in move mode.
+- After the shell reconnects to the same backend, windows minimized during
+  the session keep their rows and origin instead of showing as "Recovered".
+- Restoring from the drawer or the CLI while the native backend is away
+  leaves the row restorable (`grabbar restore` exits 3) instead of stuck in
+  "restoring".
+- `grabbar autoload enable|disable` keep a symlinked `hyprland.lua` a
+  symlink and keep its file mode; `disable` also removes a block whose END
+  line lost its newline, and reports an error instead of "removed" when it
+  cannot find the block's end.
+- Minimize stayed disabled ("Grabbar needs its bar widget") when the
+  active bar is a replacement bar plugin (contributed in #1). Omarchy 4 gives
+  third-party widgets under such a bar a shell facade without service
+  lookup, so the widget never registered as a restore host. Widgets now
+  report their lifetime through a plugin-local QML registry, independent of
+  service lookup. Removing or hiding the last widget disables Minimize even if
+  its layout entry remains configured.
+
+### Faster
+- Journal writes spawn a helper that starts in about 31 ms instead of 57 ms
+  (median; argparse removed), and `grabbar status` takes about 44 ms instead
+  of 120 ms with the backend loaded (one Python process instead of four).
+- Strip hover handling does no layout work while the pointer is outside the
+  strip and skips hit tests for windows on hidden workspaces; strip layout no
+  longer allocates (3 allocations per call before) and glyph lookups use an
+  integer key instead of a formatted string.
+- The shell retries a lost backend connection after 250 ms, then backs off
+  to every 8 s instead of polling every 2 s.
+
+### Tests
+- Native codec and strip layout moved to `native/grabbar/protocol.hpp` and
+  run under AddressSanitizer/UBSan in the offline suite (`tests/native`).
+- Loader safety test now runs six evaluations with the plugin's own side
+  effects between them and fails if any declaration differs.
+- New source guards (`tests/unit/test_native_guards.py`): no config reload
+  from the plugin, health marker only from the boot timer, no hidden symbol
+  visibility, one declaration in the loader, one version everywhere.
+- New CLI test against a fake backend socket; headless service test covers
+  reconnect and offline restore.
 
 ## 0.1.1 — 2026-09-15 (public preview)
 

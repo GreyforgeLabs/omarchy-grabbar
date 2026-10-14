@@ -14,10 +14,11 @@ characters, `%`, tab and newline become `%XX`. Lines longer than 8192 bytes
 or an input buffer over 32 KiB drop the client. Output backlog over 256 KiB
 drops the client too (a stuck reader must not stall the compositor).
 
-Encoders/decoders that must agree: `native/grabbar/backend.cpp`
-(`grabbarEncode`), `GrabbarModel.js` (`encodeField`),
-`helpers/grabbar_backend.py` (`encode`). `tests/unit/test_protocol.py` and
-`tests/unit/test_model.js` pin the format.
+Encoders/decoders that must agree: `native/grabbar/protocol.hpp`
+(`grabbar::encode`, standard library only), `GrabbarModel.js`
+(`encodeField`), `helpers/grabbar_backend.py` (`encode`).
+`tests/native/test_protocol.cpp` (ASan/UBSan), `tests/unit/test_protocol.py`
+and `tests/unit/test_model.js` pin the format with the same vectors.
 
 ## Identity
 
@@ -54,7 +55,12 @@ Minimize is refused. When the shell disconnects the
 backend refuses new minimizes at once and starts the grace timer
 (`plugin:grabbar:shell_grace_ms`, default 2000). If no shell returns in
 time, every owned window is returned to a visible workspace and the strips
-are suspended (reserved height 0).
+are suspended (reserved height 0). The shell retries its connection after
+250 ms and backs off to one attempt every 8 s while the backend stays away.
+
+Returning "every owned window" (grace expiry, `pause`, `restoreAll`, plugin
+unload) also covers windows that sit on `special:grabbar-minimized` without a
+minimize record, so nothing stays hidden once Grabbar's UI is gone.
 
 ## Messages the backend accepts
 
