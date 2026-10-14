@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.2 — unreleased (proposed)
+## 0.1.2 — 2026-10-14 (public preview)
 
 ### Fixed
 - Windows sitting on Grabbar's hidden workspace without a minimize record
