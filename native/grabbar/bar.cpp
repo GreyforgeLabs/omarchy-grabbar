@@ -142,11 +142,19 @@ CGrabbarDeco::CGrabbarDeco(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
 }
 
 CGrabbarDeco::~CGrabbarDeco() {
-    // The window (or the plugin) can go away mid-drag; its release would then
-    // never reach this strip and the pointer would stay in move mode.
-    if (m_dragging && g_pKeybindManager)
-        endDrag();
+    // No compositor calls here. Hyprland destroys decorations inside
+    // CWindow::updateWindowDecos() while erasing from the window's decoration
+    // list; ending a drag from here would re-enter focus, layout and
+    // decoration input code mid-erase. A closed window's drag is ended by
+    // Hyprland at unmap; on unload PLUGIN_EXIT calls cancelDrag() first.
     std::erase(g_pGlobalState->bars, m_self);
+}
+
+void CGrabbarDeco::cancelDrag() {
+    if (m_dragging)
+        endDrag();
+    m_dragPending   = false;
+    m_pressedButton = BTN_NONE;
 }
 
 bool CGrabbarDeco::effectiveEnabled() {

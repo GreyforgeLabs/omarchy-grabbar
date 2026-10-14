@@ -53,6 +53,20 @@ lua_code = "\n".join(line.split("--", 1)[0] for line in lua.splitlines())
 assert lua_code.count("hl.plugin.load(") == 1, "exactly one declaration"
 assert "get_loaded_plugins" not in lua_code and "hl.plugin.unload" not in lua_code
 
+# 4b. Decoration destructors run inside CWindow::updateWindowDecos() while
+#     Hyprland erases from the window's decoration list. Calling back into the
+#     compositor there (ending a drag refocuses, re-lays out and runs other
+#     decorations' input hooks) re-enters that list mid-erase. Drag cleanup on
+#     unload belongs at the start of PLUGIN_EXIT, before decorations go away.
+bar = sources["bar.cpp"]
+dtor = re.search(r"CGrabbarDeco::~CGrabbarDeco\(\)\s*\{(.*?)\n\}", bar, flags=re.S)
+assert dtor, "strip destructor not found"
+for call in ("endDrag", "cancelDrag", "changeMouseBindMode", "g_pKeybindManager", "g_layoutManager", "focusState", "g_pBackend"):
+    assert call not in dtor.group(1), f"strip destructor calls into the compositor ({call})"
+exit_body = re.search(r"void PLUGIN_EXIT\(\)\s*\{(.*?)\n\}", main, flags=re.S).group(1)
+assert "cancelDrag()" in exit_body and exit_body.index("cancelDrag()") < exit_body.index("stop(true"), \
+    "PLUGIN_EXIT must end strip drags before returning windows and before decorations are removed"
+
 # 5. One version everywhere: manifest, native GRABBAR_VERSION, changelog.
 manifest = json.load(open(os.path.join(ROOT, "manifest.json")))
 native_version = re.search(r'#define GRABBAR_VERSION\s+"([^"]+)"', open(os.path.join(NATIVE, "globals.hpp")).read()).group(1)

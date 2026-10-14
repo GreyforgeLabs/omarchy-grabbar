@@ -8,8 +8,9 @@
   and on `restore-all`, so they never stay hidden once Grabbar's UI is gone.
   A failed restore of such a "Recovered" window no longer marks it as
   minimized by Grabbar.
-- A strip that is destroyed during a title-bar drag (window closed, plugin
-  unloaded) ends the drag instead of leaving the pointer in move mode.
+- Unloading the plugin during a title-bar drag ends the drag first instead of
+  leaving the pointer in move mode. (A closed window's drag is ended by
+  Hyprland itself.)
 - After the shell reconnects to the same backend, windows minimized during
   the session keep their rows and origin instead of showing as "Recovered".
 - Restoring from the drawer or the CLI while the native backend is away

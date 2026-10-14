@@ -174,6 +174,15 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
+    // End a strip drag while every window's decoration list is still intact:
+    // Hyprland removes the decorations after this returns, and their
+    // destructors must not call back into the compositor.
+    if (g_pGlobalState) {
+        const auto BARS = g_pGlobalState->bars;
+        for (const auto& b : BARS)
+            if (b)
+                b->cancelDrag();
+    }
     if (g_bootOkTimer) {
         g_pEventLoopManager->removeTimer(g_bootOkTimer);
         g_bootOkTimer.reset();

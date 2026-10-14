@@ -59,6 +59,7 @@ class CGrabbarDeco : public IHyprWindowDecoration {
     void                               onBackendStateChanged();
     void                               renderPass(PHLMONITOR, float const& a);
     CBox                               assignedBoxGlobal();
+    void                               cancelDrag(); // end a strip drag; PLUGIN_EXIT only, never from the destructor
 
     WP<CGrabbarDeco>                   m_self;
 
